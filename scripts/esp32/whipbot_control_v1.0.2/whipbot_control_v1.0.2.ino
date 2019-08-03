@@ -12,7 +12,7 @@
 #define INA_R 18
 #define INB_R 5
 
-// use pin IO4(A10) as PWM output for LEFT motor driver, pin 24 (A12) as RIGHT one
+// use pin IO4(A10) as PWM output for LEFT motor driver, pin 2 (A12) as RIGHT one
 #define PWM_L A10
 #define PWM_R A12
 
@@ -74,12 +74,15 @@ float gX, gY, gZ, aX, aY, aZ, mX, mY, mZ, temperature_degC;
 float ACCroll, ACCpitch;
 // parameter to contain posture angles
 float roll_data, pitch_data, heading_data;
+float roll_print, pitch_print, heading_print;
 
 // parameter to contain values for initial process : cancel biased gyro value
 float sum_gX = 0, sum_gY = 0, sum_gZ = 0, offset_gX = 0, offset_gY = 0, offset_gZ = 0;
 
 // parameters for PID control
 int Kp_POSTURE = 2000, Ki_POSTURE = 0, Kd_POSTURE = 50;
+
+int current_time, passed_time, last_time;
 
 
 
@@ -130,8 +133,10 @@ void IRAM_ATTR onTimer() {
 
 void setup() {
   Serial.begin(115200);
+  pinMode(21, INPUT_PULLUP);
+  pinMode(22, INPUT_PULLUP);
+  delay(10);
   Wire.begin(SDA, SCL);
-  delay(1);
 
 
   // Create semaphore to inform us when the timer has fired
@@ -252,11 +257,11 @@ void loop() {
     pitch_print = pitch_data;
     heading_print = heading_data;
 
-    Serial.print(roll_data);
+    Serial.print(roll_print);
     Serial.print(",");
-    Serial.print(pitch_data);
+    Serial.print(pitch_print);
     Serial.print(",");
-    Serial.println(heading_data);
+    Serial.println(heading_print);
     Serial.println(passed_time);
     Serial.println();
 
