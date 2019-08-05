@@ -7,10 +7,10 @@
 #define ENC_R_B 35
 
 // use pin IO3 & IO1 as output of LEFT motor driver INA & INB, pin IO18 & IO5 for RIGHT one
-#define INA_L 19
+#define INA_L 1
 #define INB_L 3
-#define INA_R 18
-#define INB_R 5
+#define INA_R 22
+#define INB_R 0
 
 // use pin IO4(A10) as PWM output for LEFT motor driver, pin 2 (A12) as RIGHT one
 #define PWM_L A10
@@ -32,7 +32,7 @@
 
 // parameters to get IMU information
 #define GRAVITATIONAL_ACCEL 9.798 //at TOKYO
-#define SAMPLING_RATE 100 //IMU referesh rate : 100 Hz
+#define SAMPLING_RATE 200 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
 #define SAMPLES_FOR_INITIATION 200 // (not used) get mean value of 200 samples of gyro to cancel native bias
 // channel number for timer interruption
 #define INTERRUPTION_CHANNEL 0
@@ -41,9 +41,12 @@
 #define SDA 21
 #define SCL 22
 
+// use pin 27 for Chip Select of SPI communication
+#define SPI_CHIP_SELECT 27
 
-// an MPU9250 object with the MPU-9250 sensor on I2C bus 0 with address 0x68
-MPU9250 IMU(Wire, 0x68);
+
+// an MPU9250 object with the MPU-9250 sensor on SPI bus 0 and chip select pin 10
+MPU9250 IMU(SPI, SPI_CHIP_SELECT);
 int status;
 
 
@@ -87,7 +90,7 @@ float sum_gX = 0, sum_gY = 0, sum_gZ = 0, offset_gX = 0, offset_gY = 0, offset_g
 // parameters for PID control
 int Kp_POSTURE = 2000, Ki_POSTURE = 0, Kd_POSTURE = 50;
 
-int current_time, passed_time, last_time;
+int current_time, passed_time, last_time, count = 0;
 
 
 
@@ -139,11 +142,11 @@ void IRAM_ATTR onTimer() {
 void setup() {
   Serial.begin(115200);
   delay(10);
-  pinMode(21, INPUT_PULLUP);
-  pinMode(22, INPUT_PULLUP);
-  delay(10);
-  Wire.begin(SDA, SCL);
-  delay(40);
+  //  pinMode(21, INPUT_PULLUP);
+  //  pinMode(22, INPUT_PULLUP);
+  //  delay(10);
+  //  Wire.begin(SDA, SCL);
+  //  delay(40);
 
 
   // Create semaphore to inform us when the timer has fired
@@ -216,6 +219,8 @@ void loop() {
 
     get_IMU_data();
     complementary_filter();
+    //    print_time();
+    //    Serial.println("");
 
     imu_flag = false;
   }
@@ -256,6 +261,8 @@ void loop() {
   passed_time += current_time - last_time;
   last_time = current_time;
 
+
+
   if (passed_time > 10000) {
     //  print at 10Hz (every 100000 usec)
 
@@ -264,11 +271,19 @@ void loop() {
     pitch_print = pitch_data;
     heading_print = heading_data;
 
+
+    //    Serial.print(gX);
+    //    Serial.print(",");
+    //    Serial.print(gY);
+    //    Serial.print(",");
+    //    Serial.println(gZ);
+
     Serial.print(roll_print);
     Serial.print(",");
     Serial.print(pitch_print);
     Serial.print(",");
     Serial.println(heading_print);
+
     //    Serial.println(passed_time);
     //  Serial.println();
     passed_time = 0;
