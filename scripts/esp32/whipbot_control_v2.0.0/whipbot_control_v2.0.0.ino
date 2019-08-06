@@ -1,31 +1,34 @@
+#include <TimerOne.h>
 #include "MPU9250.h"
+#include <Wire.h>
+#include <SPI.h>
 
 // use pin IO16 & IO17 for input of the encoder of the left moter, IO34 & IO35 for right motor
-#define ENC_L_A 16
-#define ENC_L_B 17
-#define ENC_R_A 34
-#define ENC_R_B 35
+#define ENC_L_A 2
+#define ENC_L_B 3
+#define ENC_R_A 18
+#define ENC_R_B 19
 
 // use pin IO3 & IO1 as output of LEFT motor driver INA & INB, pin IO18 & IO5 for RIGHT one
-#define INA_L 1
-#define INB_L 3
-#define INA_R 22
-#define INB_R 0
+#define INA_L 14
+#define INB_L 15
+#define INA_R 6
+#define INB_R 7
 
 // use pin IO4(A10) as PWM output for LEFT motor driver, pin 2 (A12) as RIGHT one
-#define PWM_L A10
-#define PWM_R A12
-// channels for PWM
-#define CHANNEL_L 0
-#define CHANNEL_R 1
+#define PWM_L 4
+#define PWM_R 5
 
 // use pin 36 (A0) as analog read for LEFT motor driver(current sense), pin 39(A3) for RIGHT
-#define ANALOG_IN_L 36
-#define ANALOG_IN_R 39
+#define CURRENT_SENSE_L 54
+#define CURRENT_SENSE_R 55
+
+// use pin 56 to display battery voltage
+#define BATTERY_VOLTAGE_MONITOR 56
 
 //use pin 25 as disabling LEFT motor driver, pin 26 for RIGHT one.
-#define DISABLE_L 25
-#define DISABLE_R 26
+#define DISABLE_L 30
+#define DISABLE_R 8
 
 // configuration of servo city motor : https://www.servocity.com/317-rpm-spur-gear-motor-w-encoder
 #define PULSE_PER_ROUND 723.24  //  at output shaft
@@ -38,15 +41,12 @@
 #define INTERRUPTION_CHANNEL 0
 
 // use pin 21 & 22 for I2C communication
-#define SDA 21
-#define SCL 22
-
-// use pin 27 for Chip Select of SPI communication
-#define SPI_CHIP_SELECT 27
+#define SDA 20
+#define SCL 21
 
 
-// an MPU9250 object with the MPU-9250 sensor on SPI bus 0 and chip select pin 10
-MPU9250 IMU(SPI, SPI_CHIP_SELECT);
+// an MPU9250 object with the MPU-9250 sensor on I2C bus 0 with address 0x68
+MPU9250 IMU(Wire, 0x68);
 int status;
 
 
@@ -66,15 +66,9 @@ float total_round_L = 0, last_round_L = 0, rpm_L = 0, total_round_R = 0, last_ro
 //  parameters for PWM output
 int pwm_output_L, pwm_output_R;
 
-//  parameters for timer interruption
-hw_timer_t * timer = NULL;
-volatile SemaphoreHandle_t timerSemaphore;
-portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
-volatile uint32_t isrCounter = 0;
-volatile uint32_t lastIsrAt = 0;
-
 // parameter to trigger imu read process
 volatile bool imu_flag = false;
+volatile int interrupt_count = 0;
 
 // parameter to contain sensor value
 float gX, gY, gZ, aX, aY, aZ, mX, mY, mZ, temperature_degC;
@@ -90,12 +84,13 @@ float sum_gX = 0, sum_gY = 0, sum_gZ = 0, offset_gX = 0, offset_gY = 0, offset_g
 // parameters for PID control
 int Kp_POSTURE = 2000, Ki_POSTURE = 0, Kd_POSTURE = 50;
 
-int current_time, passed_time, last_time, count = 0;
+long current_time, passed_time, last_time;
+int count = 0;
 
 
 
 // function that will be called when GPIO interruption was fired
-void IRAM_ATTR ISR() {
+void read_encoder() {
   //  refresh each value if it is changed
   //  handle those as a single 2 bit number; 1st bit is High/Low of A, 2nd bit is High/Low of B
   //  e.g.1: if pulse A is HIGH, pulse value is 1. Shift it to left, then you get 10. if pulse B is also high, add it to the 10, then you get 11, as a combined information of the A and B
@@ -121,51 +116,15 @@ void IRAM_ATTR ISR() {
 
 
 // function that will be called when timer interruption was fired
-void IRAM_ATTR onTimer() {
-  // Increment the counter and set the time of ISR
-  portENTER_CRITICAL_ISR(&timerMux);
-
+void timer_interrupt_function() {
   //  turn on the flag to read IMU
   imu_flag = true;
-
-  isrCounter++;
-  lastIsrAt = 0;
-  portEXIT_CRITICAL_ISR(&timerMux);
-
-  // Give a semaphore that we can check in the loop
-  xSemaphoreGiveFromISR(timerSemaphore, NULL);
-
-  // It is safe to use digitalRead/Write here if you want to toggle an output
 }
 
 
 void setup() {
   Serial.begin(115200);
   delay(10);
-  //  pinMode(21, INPUT_PULLUP);
-  //  pinMode(22, INPUT_PULLUP);
-  //  delay(10);
-  //  Wire.begin(SDA, SCL);
-  //  delay(40);
-
-
-  // Create semaphore to inform us when the timer has fired
-  timerSemaphore = xSemaphoreCreateBinary();
-
-  // Use 1st timer of 4 (counted from zero).
-  // Set 80 divider for prescaler (see ESP32 Technical Reference Manual for more
-  // info).
-  timer = timerBegin(INTERRUPTION_CHANNEL, 80, true);
-
-  // Attach onTimer function to our timer.
-  timerAttachInterrupt(timer, &onTimer, true);
-
-  // Set alarm to call onTimer function every second (value in microseconds).
-  // Repeat the alarm (third parameter)
-  timerAlarmWrite(timer, 1000000 / SAMPLING_RATE, true);
-
-  // Start an alarm
-  timerAlarmEnable(timer);
 
   while (!Serial) {}
   // start communication with IMU
@@ -181,6 +140,8 @@ void setup() {
   //  initiating process was included in the imported library, so following process are not needed
   //  initiate_gyro();
 
+  Timer1.initialize(1000000 / SAMPLING_RATE); //interrupt per 10000 micro seconds(10 msec)
+  Timer1.attachInterrupt(timer_interrupt_function);
 
   // setting pin mode for encoder
   pinMode(ENC_L_A, INPUT_PULLUP);
@@ -191,31 +152,23 @@ void setup() {
   // setting pin mode for motor driver
   pinMode(INA_L, OUTPUT);
   pinMode(INB_L, OUTPUT);
-  ledcSetup(CHANNEL_L, 12800, 10); // channel:1(0〜?), pwm_frequency:12800 Hz, relosution : 10bit 4096 steps
-  ledcAttachPin(PWM_L, CHANNEL_L); // set pin:PWM_L to channel 0
+  pinMode(PWM_L, OUTPUT);
 
   pinMode(INA_R, OUTPUT);
   pinMode(INB_R, OUTPUT);
-  ledcSetup(CHANNEL_R, 12800, 10); // channel:2(0〜?), pwm_frequency:12800 Hz, relosution : 10bit 4096 steps
-  ledcAttachPin(PWM_R, CHANNEL_R); // set pin:PWM_R to channel 1
+  pinMode(PWM_R, OUTPUT);
 
   // set up interrupt function for motor encoder
-  attachInterrupt(ENC_L_A, ISR, CHANGE);
-  attachInterrupt(ENC_L_B, ISR, CHANGE);
-  attachInterrupt(ENC_R_A, ISR, CHANGE);
-  attachInterrupt(ENC_R_B, ISR, CHANGE);
+  attachInterrupt(ENC_L_A, read_encoder, CHANGE);
+  attachInterrupt(ENC_L_B, read_encoder, CHANGE);
+  attachInterrupt(ENC_R_A, read_encoder, CHANGE);
+  attachInterrupt(ENC_R_B, read_encoder, CHANGE);
 }
 
 
 void loop() {
   // If Timer has fired
   if (imu_flag == true) {
-    uint32_t isrCount = 0, isrTime = 0;
-    // Read the interrupt count and time
-    portENTER_CRITICAL(&timerMux);
-    isrCount = isrCounter;
-    isrTime = lastIsrAt;
-    portEXIT_CRITICAL(&timerMux);
 
     get_IMU_data();
     complementary_filter();
@@ -223,6 +176,7 @@ void loop() {
     //    Serial.println("");
 
     imu_flag = false;
+    interrupt_count++;
   }
 
   pwm_output_L = -1 * Kp_POSTURE * pitch_data + Kd_POSTURE * gX;
@@ -236,8 +190,8 @@ void loop() {
   pwm_output_R = pwm_output_L;
 
   if (pwm_output_L >= 0) {
-    ledcWrite(CHANNEL_L, pwm_output_L);
-    ledcWrite(CHANNEL_R, pwm_output_R);
+    analogWrite(PWM_L, pwm_output_L);
+    analogWrite(PWM_R, pwm_output_R);
 
     digitalWrite(INA_L, HIGH);
     digitalWrite(INB_L, LOW);
@@ -247,8 +201,8 @@ void loop() {
   }
 
   else {
-    ledcWrite(CHANNEL_L, abs(pwm_output_L));
-    ledcWrite(CHANNEL_R, abs(pwm_output_R));
+    analogWrite(PWM_L, abs(pwm_output_L));
+    analogWrite(PWM_R, abs(pwm_output_R));
 
     digitalWrite(INA_L, LOW);
     digitalWrite(INB_L, HIGH);
@@ -258,34 +212,35 @@ void loop() {
   }
 
   current_time = micros();
-  passed_time += current_time - last_time;
+  passed_time += (current_time - last_time);
   last_time = current_time;
+  //  Serial.println(passed_time);
 
-
-
-  if (passed_time > 10000) {
+  if (passed_time > 100000) {
     //  print at 10Hz (every 100000 usec)
-
     // reserve posture angle for print so that they won't be refreshed during communicating
     roll_print = roll_data;
     pitch_print = pitch_data;
     heading_print = heading_data;
 
 
+    //    Serial.print(passed_time);
     //    Serial.print(gX);
     //    Serial.print(",");
     //    Serial.print(gY);
     //    Serial.print(",");
     //    Serial.println(gZ);
 
-    Serial.print(ACCroll);
+    Serial.print(roll_print);
     Serial.print(",");
-    Serial.print(ACCpitch);
+    Serial.print(pitch_print);
     Serial.print(",");
-    Serial.println(aZ);
-
+    Serial.println(heading_print);
     //    Serial.println(passed_time);
+
+    //    print_time();
     //  Serial.println();
     passed_time = 0;
+    interrupt_count = 0;
   }
 }
