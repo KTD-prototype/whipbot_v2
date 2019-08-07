@@ -236,6 +236,13 @@ void loop() {
     Serial.print(pitch_print);
     Serial.print(",");
     Serial.println(heading_print);
+
+    //    Serial.print(aX);
+    //    Serial.print(",");
+    //    Serial.print(aY);
+    //    Serial.print(",");
+    //    Serial.println(aZ);
+  
     //    Serial.println(passed_time);
 
     //    print_time();

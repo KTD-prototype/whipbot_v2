@@ -51,7 +51,8 @@ void complementary_filter() {
   ACCroll = J * ACCroll + (1 - J) * atan2(aX, sqrt(pow(aY, 2) + pow(aZ, 2)));
 
   //calculate coefficients for complementary filter
-  g = sqrt(pow(aX, 2) + pow(aY, 2) + pow(aZ, 2));
+  //remind aX, aY, aZ are in [m/s2], but g should be in [g], so you have to divide by 9.81 approx.
+  g = sqrt(pow(aX, 2) + pow(aY, 2) + pow(aZ, 2)) / GRAVITATIONAL_ACCEL;
   k = 0.1 * pow(65536, -1 * (pow((1 - g), 2) / C));
 
   //calculate pitch/roll/yaw by gyrosensor (About pitch & roll, using Complementary Filter)

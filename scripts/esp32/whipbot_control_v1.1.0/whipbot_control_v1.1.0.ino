@@ -263,7 +263,7 @@ void loop() {
 
 
 
-  if (passed_time > 10000) {
+  if (passed_time > 100000) {
     //  print at 10Hz (every 100000 usec)
 
     // reserve posture angle for print so that they won't be refreshed during communicating
@@ -278,11 +278,11 @@ void loop() {
     //    Serial.print(",");
     //    Serial.println(gZ);
 
-    Serial.print(ACCroll);
+    Serial.print(roll_data);
     Serial.print(",");
-    Serial.print(ACCpitch);
+    Serial.print(pitch_data);
     Serial.print(",");
-    Serial.println(aZ);
+    Serial.println(heading_data);
 
     //    Serial.println(passed_time);
     //  Serial.println();
