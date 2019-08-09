@@ -7,7 +7,7 @@
 #define ENC_R_B 34
 
 // use pin IO1 & IO3 as output of LEFT motor driver INA & INB, pin IO22 & IO0 for RIGHT one
-#define INA_L 1
+#define INA_L 15
 #define INB_L 3
 #define INA_R 22
 #define INB_R 0
@@ -35,7 +35,7 @@
 
 // parameters to get IMU information
 #define GRAVITATIONAL_ACCEL 9.798 //at TOKYO
-#define SAMPLING_RATE 200 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
+#define SAMPLING_RATE 100 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
 #define SAMPLES_FOR_INITIATION 200 // (not used) get mean value of 200 samples of gyro to cancel native bias
 // channel number for timer interruption
 #define INTERRUPTION_CHANNEL 0
@@ -75,8 +75,10 @@ volatile bool imu_flag = false;
 float imu_data[10]; //accel XYZ, gyro XYZ, mag XYZ, temperature
 float posture_angle[3]; //roll, pitch, heading
 
-// parameters for PID control
-int Kp_POSTURE = 2000, Ki_POSTURE = 0, Kd_POSTURE = 50;
+// parameters for porsture control of the robot
+int Kp_posture = 1400, Ki_posture = 0, Kd_posture = 50;
+float target_angle = 0;
+float accumulated_angle_error = 0;
 
 int current_time, passed_time, last_time, count = 0;
 
@@ -99,8 +101,8 @@ void IRAM_ATTR ISR() {
   pulse_R = process_byte(pulse_R);
 
   // count up encoder based on output pulse
-  count_L = count_encoder(pulse_L, last_pulse_L, count_L);
-  count_R = count_encoder(pulse_R, last_pulse_R, count_R);
+  count_L = count_encoder(pulse_L, last_pulse_L, count_L, 'L');
+  count_R = count_encoder(pulse_R, last_pulse_R, count_R, 'R');
 
   //  reserve pulse info as last one of those
   last_pulse_L = pulse_L;
@@ -186,6 +188,9 @@ void setup() {
   pinMode(CURRENT_SENSE_R, INPUT_PULLUP);
   pinMode(BATTERY_VOLTAGE_SENSE, INPUT_PULLUP);
 
+  pinMode(DISABLE_L, OUTPUT);
+  pinMode(DISABLE_R, OUTPUT);
+
   // set up interrupt function for motor encoder
   attachInterrupt(ENC_L_A, ISR, CHANGE);
   attachInterrupt(ENC_L_B, ISR, CHANGE);
@@ -209,9 +214,10 @@ void loop() {
     imu_flag = false;
   }
 
-  //  parameters for PWM output
+  //  calculation for PWM output
   int pwm_output_L, pwm_output_R;
-  pwm_output_L = -1 * Kp_POSTURE * posture_angle[1] + Kd_POSTURE * imu_data[3];
+  accumulated_angle_error += posture_angle[1] - target_angle;
+  pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * (-0.001) * accumulated_angle_error;
 
   if (pwm_output_L > 4095) {
     pwm_output_L = 4095;
@@ -222,92 +228,69 @@ void loop() {
 
   pwm_output_R = pwm_output_L;
 
-  if (pwm_output_L >= 0) {
-    ledcWrite(CHANNEL_L, pwm_output_L);
-    ledcWrite(CHANNEL_R, pwm_output_R);
 
-    digitalWrite(INA_L, HIGH);
-    digitalWrite(INB_L, LOW);
-
-    digitalWrite(INA_R, HIGH);
-    digitalWrite(INB_R, LOW);
+  // check battery voltage before drive motor
+  int raw_voltage = analogRead(BATTERY_VOLTAGE_SENSE);
+  float voltage = raw_voltage * 3.3 * 4 / 4096;
+  bool drive_flag;
+  if (voltage > 11) {
+    drive_flag = true;
+  }
+  else {
+    drive_flag = false;
   }
 
+
+  // check robot's posture angle, if pitch is too much, stop to drive motors.
+  if (posture_angle[1] > (20 * M_PI / 180)) {
+    drive_flag = false;
+  }
+
+  if (drive_flag == true) {
+    digitalWrite(DISABLE_L, HIGH);
+    digitalWrite(DISABLE_R, HIGH);
+    if (pwm_output_L >= 0) {
+      ledcWrite(CHANNEL_L, pwm_output_L);
+      ledcWrite(CHANNEL_R, pwm_output_R);
+
+      digitalWrite(INA_L, HIGH);
+      digitalWrite(INB_L, LOW);
+
+      digitalWrite(INA_R, LOW);
+      digitalWrite(INB_R, HIGH);
+
+      //      Serial.print(pwm_output_L);
+      //      Serial.print(",");
+      //      Serial.println(pwm_output_R);
+    }
+
+    else {
+      ledcWrite(CHANNEL_L, abs(pwm_output_L));
+      ledcWrite(CHANNEL_R, abs(pwm_output_R));
+
+      digitalWrite(INA_L, LOW);
+      digitalWrite(INB_L, HIGH);
+
+      digitalWrite(INA_R, HIGH);
+      digitalWrite(INB_R, LOW);
+
+      //      Serial.print(pwm_output_L);
+      //      Serial.print(",");
+      //      Serial.println(pwm_output_R);
+    }
+  }
   else {
-    ledcWrite(CHANNEL_L, abs(pwm_output_L));
-    ledcWrite(CHANNEL_R, abs(pwm_output_R));
-
-    digitalWrite(INA_L, LOW);
-    digitalWrite(INB_L, HIGH);
-
-    digitalWrite(INA_R, LOW);
-    digitalWrite(INB_R, HIGH);
+    digitalWrite(DISABLE_L, LOW);
+    digitalWrite(DISABLE_R, LOW);
   }
 
   current_time = micros();
   passed_time += current_time - last_time;
   last_time = current_time;
 
-
-
   if (passed_time > 100000) {
     //  print at 10Hz (every 100000 usec)
-
-    //    Serial.print(gX);
-    //    Serial.print(",");
-    //    Serial.print(gY);
-    //    Serial.print(",");
-    //    Serial.println(gZ);
-
-    //    Serial.print(imu_data[0]);
-    //    Serial.print(",");
-    //    Serial.print(imu_data[1]);
-    //    Serial.print(",");
-    //    Serial.println(imu_data[2]);
-
-    //    Serial.print(posture_angle[0]);
-    //    Serial.print(",");
-    //    Serial.print(posture_angle[1]);
-    //    Serial.print(",");
-    //    Serial.println(posture_angle[2]);
-
-    // preserve current count dependent from interruption process since "count_L" will change from moment to moment:
-    current_count_L = count_L;
-    current_count_R = count_R;
-    Serial.print(current_count_L);
-    Serial.print(", ");
-    Serial.print(current_count_R);
-    Serial.println("  [count]");
-
-    total_round_L = float(current_count_L / PULSE_PER_ROUND);
-    total_round_R = float(current_count_R / PULSE_PER_ROUND);
-    Serial.print(total_round_L);
-    Serial.print(", ");
-    Serial.print(total_round_R);
-    Serial.println("  [round]");
-
-    time1 = micros();
-    dt = time1 - time2;
-    time2 = time1; //nearer is better to preserve last time of loop since you get dt
-
-    //translate int parameter to float since the value is too small so calculated value must be regarded as zero
-    rpm_L = ((float(current_count_L - last_count_L) / dt) / PULSE_PER_ROUND) * 1000000 * 60;
-    rpm_R = ((float(current_count_R - last_count_R) / dt) / PULSE_PER_ROUND) * 1000000 * 60;
-    Serial.print(rpm_L);
-    Serial.print(", ");
-    Serial.print(rpm_R);
-    Serial.println("  [rpm]");
-
-    last_count_L = current_count_L;
-    last_round_L = total_round_L;
-    last_count_R = current_count_R;
-    last_round_R = total_round_R;
-
-    Serial.println(pwm_output_R);
-    Serial.println();
-
-    //    Serial.println(passed_time);
-    //  Serial.println();
+    Serial.println(pwm_output_L);
     passed_time = 0;
   }
 }
