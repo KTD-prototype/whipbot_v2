@@ -264,10 +264,6 @@ void loop() {
 
       digitalWrite(INA_R, LOW);
       digitalWrite(INB_R, HIGH);
-
-      //      Serial.print(pwm_output_L);
-      //      Serial.print(",");
-      //      Serial.println(pwm_output_R);
     }
 
     else {
@@ -281,10 +277,6 @@ void loop() {
 
       digitalWrite(INA_R, HIGH);
       digitalWrite(INB_R, LOW);
-
-      //      Serial.print(pwm_output_L);
-      //      Serial.print(",");
-      //      Serial.println(pwm_output_R);
     }
   }
   else {
