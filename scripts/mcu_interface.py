@@ -29,7 +29,7 @@ passed_time = 0.0
 INITIALIZE_MESSAGE = 'ets Jun  8 2016 00:22:57'
 
 
-def get_data():
+def get_MCU_data():
     command_head = 'H'
     velocity_command_linear = 100
     velocity_command_angular = 100
@@ -70,7 +70,8 @@ def get_data():
 
 
 if __name__ == '__main__':
-    rospy.init_node('get_sernsor')
+    # initialize node as "mcu_interface"
+    rospy.init_node('mcu_interface')
 
     # you should wait for a while until your arduino is ready
     time.sleep(5)
@@ -81,7 +82,7 @@ if __name__ == '__main__':
 
     while not rospy.is_shutdown():
         try:
-            get_data()
+            get_MCU_data()
 
         except IOError:
             pass
