@@ -290,7 +290,7 @@ void loop() {
 
   if (Serial.available() >= 3) {
     if (Serial.read() == 'H') {
-    
+
       byte P_gain_high = Serial.read();
       byte P_gain_low = Serial.read();
       Kp_posture = P_gain_high * 256 + P_gain_low;
@@ -315,6 +315,9 @@ void loop() {
         Serial.println(imu_data[j]);
       }
       Serial.println(voltage);
+      //      Serial.println(Kp_posture);
+      //      Serial.println(Ki_posture);
+      //      Serial.println(Kd_posture);
     }
     else {
       while (Serial.available() > 0) {

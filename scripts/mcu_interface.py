@@ -49,7 +49,7 @@ def get_MCU_data():
 
     ser.reset_input_buffer()
     ser.write(send_command)
-    print(send_command)
+    # print(send_command)
     send_command = []
 
     # print(ser.inWaiting())
@@ -76,7 +76,27 @@ def get_MCU_data():
         data_from_MCU[i] = float(data_from_MCU[i])
 
     if reset_flag == False:
-        print(data_from_MCU)
+        # transform posture from euler to quaternion
+        posture_angle_quaternion = tf.transformations.quaternion_from_euler(
+            data_from_MCU[2], data_from_MCU[3], data_from_MCU[4])
+
+        # contain to the message : /imu
+        imu_data.orientation.x = posture_angle_quaternion[0]
+        imu_data.orientation.y = posture_angle_quaternion[1]
+        imu_data.orientation.z = posture_angle_quaternion[2]
+        imu_data.orientation.w = posture_angle_quaternion[3]
+
+        # contain data of accelerometer to the message : /imu
+        imu_data.linear_acceleration.x = data_from_MCU[5]
+        imu_data.linear_acceleration.y = data_from_MCU[6]
+        imu_data.linear_acceleration.z = data_from_MCU[7]
+
+        # contain data of gyroscope to the message : /imu
+        imu_data.angular_velocity.x = data_from_MCU[8]
+        imu_data.angular_velocity.y = data_from_MCU[9]
+        imu_data.angular_velocity.z = data_from_MCU[10]
+
+        imu_pub.publish(imu_data)  # publish as sensor_msgs/Imu
 
 
 # callback function to refresh PID gains those are subscribed
