@@ -81,7 +81,7 @@ float posture_angle[3]; //roll, pitch, heading
 
 // parameters for porsture control of the robot
 int Kp_posture = 0, Ki_posture = 0, Kd_posture = 0; //PID gains will modified through command from host PC
-float target_angle = 0;
+float target_angle = 0.035;
 float accumulated_angle_error = 0;
 
 // velocity command from host PC. Unit is [cm/sec], [*0.01 rad/sec] when gain is 1
@@ -223,8 +223,8 @@ void loop() {
 
   //  calculation for PWM output
   int pwm_output_L, pwm_output_R;
-  accumulated_angle_error += posture_angle[1] - target_angle;
-  pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * (-0.001) * accumulated_angle_error;
+  accumulated_angle_error += (posture_angle[1] - target_angle);
+  pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * -1 * 0.005 * accumulated_angle_error;
 
   if (pwm_output_L > 4095) {
     pwm_output_L = 4095;
@@ -319,24 +319,27 @@ void loop() {
       //      Serial.println(Ki_posture);
       //      Serial.println(Kd_posture);
     }
-    else {
-      while (Serial.available() > 0) {
-        int discard = Serial.read();
-      }
-    }
+    //    else {
+    //      while (Serial.available() > 0) {
+    //        int discard = Serial.read();
+    //      }
+    //    }
   }
 
-  //  if (passed_time > 100000) {
+  //  if (passed_time > 10000) {
   //    //  print at 10Hz (every 100000 usec)
-  //    Serial.println(encoder_count_L);
-  //    Serial.println(encoder_count_R);
-  //    for (int i = 0; i < 3; i++) {
-  //      Serial.println(posture_angle[i]);
-  //    }
-  //    for (int j = 0; j < 10; j++) {
-  //      Serial.println(imu_data[j]);
-  //    }
-  //    Serial.println();
+  //    //    Serial.println(encoder_count_L);
+  //    //    Serial.println(encoder_count_R);
+  //    //    for (int i = 0; i < 3; i++) {
+  //    //      Serial.println(posture_angle[i]);
+  //    //    }
+  //    //    for (int j = 0; j < 10; j++) {
+  //    //      Serial.println(imu_data[j]);
+  //    //    }
+  //    //    Serial.println();
+  //    //    Serial.println(pwm_output_L);
+  //    Serial.println(posture_angle[1]);
   //    passed_time = 0;
   //  }
+  delay(1);
 }
