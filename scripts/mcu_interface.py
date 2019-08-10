@@ -43,14 +43,16 @@ def get_data():
     send_command = []
 
     # print(ser.inWaiting())
-    while ser.inWaiting() < 1:
-        # print("waiting")
+    while ser.inWaiting() < 60:
+        # print(ser.inWaiting())
         pass
+    # print('received')
 
-    # i:0 to 14, encoder-L/R, roll, pitch, heading[rad], accelX,Y,Z[m/s2], gyroX,Y,Z[rad/s], magX,Y,Z[uT], temperature[degC]
-    data_from_MCU = [0.0] * 15
+    # i:0 to 14, encoder-L/R, roll, pitch, heading[rad],
+    # accelX,Y,Z[m/s2], gyroX,Y,Z[rad/s], magX,Y,Z[uT], temperature[degC], battery_voltage[v]
+    data_from_MCU = [0.0] * 16
     reset_flag = False
-    for i in range(1):
+    for i in range(16):
         data_from_MCU[i] = ser.readline()  # read data line by line
         # remove return code and end point null
         data_from_MCU[i] = data_from_MCU[i].replace('\r\n', '')
@@ -71,7 +73,7 @@ if __name__ == '__main__':
     rospy.init_node('get_sernsor')
 
     # you should wait for a while until your arduino is ready
-    time.sleep(6)
+    time.sleep(5)
     print("started")
 
     # set the loop rate at 50Hz (higher is better, but it looks 60Hz is MAXIMUM for my environment)

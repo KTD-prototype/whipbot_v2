@@ -8,7 +8,7 @@
 
 // use pin IO1 & IO3 as output of LEFT motor driver INA & INB, pin IO22 & IO0 for RIGHT one
 #define INA_L 15
-#define INB_L 3
+#define INB_L 14
 #define INA_R 22
 #define INB_R 0
 
@@ -297,6 +297,14 @@ void loop() {
   last_time = current_time;
 
   if (Serial.available() >= 3) {
+    //    if (Serial.read() == 'H') {
+    //      byte high = Serial.read();
+    //      byte low = Serial.read();
+    //      int recieved_data = high * 256 + low;
+    //
+    //      Serial.println(recieved_data);
+    //    }
+
     if (Serial.read() == 'H') {
       velocity_command_linear = float(Serial.read());
       velocity_command_angular = float(Serial.read());
@@ -309,12 +317,13 @@ void loop() {
       for (int j = 0; j < 10; j++) {
         Serial.println(imu_data[j]);
       }
+      Serial.println(voltage);
     }
-    //    else {
-    //      while (Serial.available() > 0) {
-    //        int discard = Serial.read();
-    //      }
-    //    }
+    else {
+      while (Serial.available() > 0) {
+        int discard = Serial.read();
+      }
+    }
   }
 
   //  if (passed_time > 100000) {

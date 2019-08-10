@@ -69,9 +69,4 @@ void complementary_filter(float *posture_angle_func, float *imu_data_func) {
   else if (posture_angle_func[2] < -1 * M_PI) {
     posture_angle_func[2] = 2 * M_PI + posture_angle_func[2];
   }
-  //  Serial.print(ACC_roll);
-  //  Serial.print(",");
-  //  Serial.println(ACC_pitch);
-  //  Serial.print(",");
-  //  Serial.println(imu_data_func[2]);
 }
