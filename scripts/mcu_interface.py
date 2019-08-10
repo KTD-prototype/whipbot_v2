@@ -37,14 +37,15 @@ def get_MCU_data():
     D_gain_posture_high = global_pid_gain_posture[2] >> 8
     D_gain_posture_low = global_pid_gain_posture[2] & 0x00ff
 
-    velocity_command_linear = 100
-    velocity_command_angular = 100
+    velocity_command_linear = 0
+    velocity_command_angular = 0
 
     send_command = []
     send_command += [command_head, chr(P_gain_posture_high), chr(
         P_gain_posture_low), chr(I_gain_posture_high), chr(
         I_gain_posture_low), chr(D_gain_posture_high), chr(
-        D_gain_posture_low), chr(velocity_command_linear), chr(velocity_command_angular)]
+        D_gain_posture_low), chr(velocity_command_linear), chr(
+        velocity_command_angular)]
 
     ser.reset_input_buffer()
     ser.write(send_command)
