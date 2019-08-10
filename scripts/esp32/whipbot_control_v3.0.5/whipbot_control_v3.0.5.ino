@@ -66,7 +66,7 @@ int time1, time2, dt;
 int encoder_count_for_output = 0;
 
 //  parameters for motor output shaft state
-long current_encoder_count_L, last_encoder_count_L = 0, current_encoder_count_R = 0, last_encoder_count_R = 0;
+long last_encoder_count_L = 0, last_encoder_count_R = 0;
 float total_round_L = 0, last_round_L = 0, rpm_L = 0, total_round_R = 0, last_round_R = 0, rpm_R = 0;
 
 //  parameters for timer interruption
@@ -84,13 +84,14 @@ float posture_angle[3]; //roll, pitch, heading
 
 // parameters for porsture control of the robot
 int Kp_posture = 0, Ki_posture = 0, Kd_posture = 0; //PID gains will modified through command from host PC
-float target_angle = 0.08;
+float target_angle = 0.0, target_angular_velocity = 0.0;
 float accumulated_angle_error = 0;
+float voltage = 0; // battery voltage
 
 // velocity command from host PC. Unit is [cm/sec], [*0.01 rad/sec] when gain is 1
 float velocity_command_linear = 0, velocity_command_angular = 0;
 
-int current_time, passed_time, last_time, count = 0;
+int current_time, passed_time, last_time;
 
 
 
@@ -235,54 +236,16 @@ void loop() {
   else if (pwm_output_L < -4095) {
     pwm_output_L = -4095;
   }
-
   pwm_output_R = pwm_output_L;
 
-
-  // check battery voltage before drive motor
-  int raw_voltage = analogRead(BATTERY_VOLTAGE_SENSE);
-  float voltage = raw_voltage * 3.3 * 4 / 4096;
-  bool drive_flag;
-  if (voltage > 11) {
-    drive_flag = true;
-  }
-  else {
-    drive_flag = false;
-  }
-
-  // check robot's posture angle, if it is tilted too much, stop to drive motors.
-  if (abs(posture_angle[1]) > (30.0 * M_PI / 180.0)) {
-    drive_flag = false;
-  }
+  bool drive_flag = motor_drive_enable();
 
   if (drive_flag == true) {
     digitalWrite(DISABLE_L, HIGH);
     digitalWrite(DISABLE_R, HIGH);
-
-    if (pwm_output_L >= 0) {
-      ledcWrite(CHANNEL_L, pwm_output_L);
-      ledcWrite(CHANNEL_R, pwm_output_R);
-
-      digitalWrite(INA_L, HIGH);
-      digitalWrite(INB_L, LOW);
-
-      digitalWrite(INA_R, LOW);
-      digitalWrite(INB_R, HIGH);
-    }
-
-    else {
-      digitalWrite(DISABLE_L, HIGH);
-      digitalWrite(DISABLE_R, HIGH);
-      ledcWrite(CHANNEL_L, abs(pwm_output_L));
-      ledcWrite(CHANNEL_R, abs(pwm_output_R));
-
-      digitalWrite(INA_L, LOW);
-      digitalWrite(INB_L, HIGH);
-
-      digitalWrite(INA_R, HIGH);
-      digitalWrite(INB_R, LOW);
-    }
+    motor_drive(pwm_output_L); //pwm_output_L and pwm_output_R is same value
   }
+
   else {
     digitalWrite(DISABLE_L, LOW);
     digitalWrite(DISABLE_R, LOW);
@@ -295,21 +258,11 @@ void loop() {
   if (COM_FLAG == true) {
     if (Serial.available() >= 3) {
       if (Serial.read() == 'H') {
-
-        byte P_gain_high = Serial.read();
-        byte P_gain_low = Serial.read();
-        Kp_posture = P_gain_high * 256 + P_gain_low;
-
-        byte I_gain_high = Serial.read();
-        byte I_gain_low = Serial.read();
-        Ki_posture = I_gain_high * 256 + I_gain_low;
-
-        byte D_gain_high = Serial.read();
-        byte D_gain_low = Serial.read();
-        Kd_posture = D_gain_high * 256 + D_gain_low;
-
-        velocity_command_linear = float(Serial.read());
-        velocity_command_angular = float(Serial.read());
+        target_angle = 0.001 * (float(receive_data()));
+        target_angular_velocity = receive_data();
+        Kp_posture = receive_data();
+        Ki_posture = receive_data();
+        Kd_posture = receive_data();
 
         Serial.println(encoder_count_L);
         Serial.println(encoder_count_R);
@@ -320,6 +273,9 @@ void loop() {
           Serial.println(imu_data[j]);
         }
         Serial.println(voltage);
+        
+        //        Serial.println(target_angle);
+        //        Serial.println(target_angular_velocity);
         //        Serial.println(Kp_posture);
         //        Serial.println(Ki_posture);
         //        Serial.println(Kd_posture);

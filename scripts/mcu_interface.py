@@ -30,6 +30,14 @@ def get_MCU_data():
 
     command_head = 'H'
 
+    target_angle = 80  # * 0.001 deg (mdeg)
+    target_angular_velocity = 0
+
+    target_angle_high = target_angle >> 8
+    target_angle_low = target_angle & 0x00ff
+    target_angular_velocity_high = target_angular_velocity >> 8
+    target_angular_velocity_low = target_angular_velocity & 0x00ff
+
     P_gain_posture_high = global_pid_gain_posture[0] >> 8
     P_gain_posture_low = global_pid_gain_posture[0] & 0x00ff
     I_gain_posture_high = global_pid_gain_posture[1] >> 8
@@ -37,15 +45,13 @@ def get_MCU_data():
     D_gain_posture_high = global_pid_gain_posture[2] >> 8
     D_gain_posture_low = global_pid_gain_posture[2] & 0x00ff
 
-    velocity_command_linear = 0
-    velocity_command_angular = 0
-
     send_command = []
-    send_command += [command_head, chr(P_gain_posture_high), chr(
+    send_command += [command_head, chr(target_angle_high), chr(
+        target_angle_low), chr(target_angular_velocity_high), chr(
+        target_angular_velocity_low), chr(P_gain_posture_high), chr(
         P_gain_posture_low), chr(I_gain_posture_high), chr(
         I_gain_posture_low), chr(D_gain_posture_high), chr(
-        D_gain_posture_low), chr(velocity_command_linear), chr(
-        velocity_command_angular)]
+        D_gain_posture_low)]
 
     ser.reset_input_buffer()
     ser.write(send_command)
@@ -76,6 +82,8 @@ def get_MCU_data():
         data_from_MCU[i] = float(data_from_MCU[i])
 
     if reset_flag == False:
+        # print(data_from_MCU)
+
         # transform posture from euler to quaternion
         posture_angle_quaternion = tf.transformations.quaternion_from_euler(
             data_from_MCU[2], data_from_MCU[3], data_from_MCU[4])
