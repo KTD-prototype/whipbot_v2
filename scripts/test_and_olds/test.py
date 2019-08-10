@@ -1,9 +1,7 @@
-def calc():
-    A = [1, 2]
-    B = [3, 4]
-    return A, B
+def calc(data):
+    print(data)
 
 
 while True:
-    C = calc()
-    print(C[0][1])
+    C = [1, 2]
+    calc(C)
