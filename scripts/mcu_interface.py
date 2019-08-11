@@ -32,12 +32,12 @@ def get_MCU_data():
     command_head = 'H'
 
     target_angle = 40  # * 0.001 deg (mdeg)
-    target_angular_velocity = 0
+    target_rotation = 0
 
     target_angle_high = target_angle >> 8
     target_angle_low = target_angle & 0x00ff
-    target_angular_velocity_high = target_angular_velocity >> 8
-    target_angular_velocity_low = target_angular_velocity & 0x00ff
+    target_rotation_high = target_rotation >> 8
+    target_rotation_low = target_rotation & 0x00ff
 
     P_gain_posture_high = global_pid_gain_posture[0] >> 8
     P_gain_posture_low = global_pid_gain_posture[0] & 0x00ff
@@ -48,8 +48,8 @@ def get_MCU_data():
 
     send_command = []
     send_command += [command_head, chr(target_angle_high), chr(
-        target_angle_low), chr(target_angular_velocity_high), chr(
-        target_angular_velocity_low), chr(P_gain_posture_high), chr(
+        target_angle_low), chr(target_rotation_high), chr(
+        target_rotation_low), chr(P_gain_posture_high), chr(
         P_gain_posture_low), chr(I_gain_posture_high), chr(
         I_gain_posture_low), chr(D_gain_posture_high), chr(
         D_gain_posture_low)]
@@ -171,6 +171,11 @@ if __name__ == '__main__':
 
     # (for tuning) subscriber for change PID gains via message
     rospy.Subscriber('new_PID_gains', PID_gains, callback_update_PID_gains)
+
+    # subscriber to get target angle and target rotation of the robot
+    rospy.Subscriber('target_angle', Int16, callback_servo_reset, queue_size=1)
+    rospy.Subscriber('target_rotation', Int16,
+                     callback_servo_reset, queue_size=1)
 
     # you should wait for a while until your arduino is ready
     time.sleep(5)
