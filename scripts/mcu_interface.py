@@ -31,7 +31,7 @@ def get_MCU_data():
 
     command_head = 'H'
 
-    target_angle = 80  # * 0.001 deg (mdeg)
+    target_angle = 40  # * 0.001 deg (mdeg)
     target_angular_velocity = 0
 
     target_angle_high = target_angle >> 8
@@ -83,7 +83,7 @@ def get_MCU_data():
         data_from_MCU[i] = float(data_from_MCU[i])
 
     if reset_flag == False:
-        print(data_from_MCU)
+        # print(data_from_MCU)
 
         # store and publish encoder data
         encoders.left_encoder = data_from_MCU[0]
