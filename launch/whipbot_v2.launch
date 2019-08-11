@@ -1,0 +1,17 @@
+<launch>
+
+  <node name="mcu_interface" pkg="whipbot_v2" type="mcu_interface.py" output="screen"/>
+
+  <node name="wheel_odometry"   pkg="wheel_odometry" type="wheel_odometry_2wheel.py" output="screen">
+    <param name="pulse_per_round" value="723.24"/>
+    <param name="wheel_diameter" value="0.1524"/>
+    <param name="tread" value="0.289"/>
+  </node>
+
+  <!-- <node name="joy_node"   pkg="joy" type="joy_node">
+    <param name="autorepeat_rate" value="100"/>
+  </node> -->
+
+  <node name="static_transform_publisher" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 map frame 100"/>
+
+</launch>
