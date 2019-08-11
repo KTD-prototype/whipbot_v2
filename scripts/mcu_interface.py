@@ -17,6 +17,7 @@ import tf
 import math
 from sensor_msgs.msg import Imu
 from whipbot_v2.msg import PID_gains
+from wheel_odometry.msg import Encoder_2wheel
 
 # prepare serial port to communicate with the MCU
 ser = serial.Serial('/dev/ESP32', 115200)
@@ -82,7 +83,12 @@ def get_MCU_data():
         data_from_MCU[i] = float(data_from_MCU[i])
 
     if reset_flag == False:
-        # print(data_from_MCU)
+        print(data_from_MCU)
+
+        # store and publish encoder data
+        encoders.left_encoder = data_from_MCU[0]
+        encoders.right_encoder = data_from_MCU[1]
+        pub_encoders.publish(encoders)
 
         # transform posture from euler to quaternion
         posture_angle_quaternion = tf.transformations.quaternion_from_euler(
@@ -152,6 +158,11 @@ if __name__ == '__main__':
     # publisher to inform current PID gains
     pub_current_gains = rospy.Publisher(
         'current_PID_gains', PID_gains, queue_size=1, latch=True)
+
+    # publisher for encoder
+    pub_encoders = rospy.Publisher(
+        'encoder_2wheel', Encoder_2wheel, queue_size=1, latch=True)
+    encoders = Encoder_2wheel()
 
     # define /Imu publisher and declare it
     imu_pub = rospy.Publisher('/imu', Imu, queue_size=1)
