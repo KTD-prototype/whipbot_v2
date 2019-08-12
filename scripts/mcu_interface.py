@@ -13,8 +13,8 @@ import serial
 import time
 import signal
 import sys
-import tf
 import math
+from std_msgs.msg import Int16
 from sensor_msgs.msg import Imu
 from whipbot_v2.msg import PID_gains
 from wheel_odometry.msg import Encoder_2wheel
@@ -173,9 +173,10 @@ if __name__ == '__main__':
     rospy.Subscriber('new_PID_gains', PID_gains, callback_update_PID_gains)
 
     # subscriber to get target angle and target rotation of the robot
-    rospy.Subscriber('target_angle', Int16, callback_servo_reset, queue_size=1)
+    rospy.Subscriber('target_angle', Int16,
+                     callback_refresh_target_angle, queue_size=1)
     rospy.Subscriber('target_rotation', Int16,
-                     callback_servo_reset, queue_size=1)
+                     callback_refresh_target_angle, queue_size=1)
 
     # you should wait for a while until your arduino is ready
     time.sleep(5)
