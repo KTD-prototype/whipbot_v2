@@ -11,6 +11,7 @@
 import rospy
 import serial
 import time
+import tf
 import signal
 import sys
 import math
@@ -23,28 +24,41 @@ from wheel_odometry.msg import Encoder_2wheel
 ser = serial.Serial('/dev/ESP32', 115200)
 
 # global parameters for pid gains used in the MCU
-global_pid_gain_posture = [0] * 3  # 3 gain parameters : P, I and D
+g_pid_gain_posture = [0] * 3  # 3 gain parameters : P, I and D
+g_target_angle = 0  # target of robot's tilt angle [*0.001 rad]
+g_target_rotation = 0  # target of robot's rotation
 
 
 def get_MCU_data():
-    global global_pid_gain_posture
+    global g_pid_gain_posture, g_target_angle, g_target_rotation
+
+    # shift range of the targets to positive number for send as char
+    # shift target angle
+    if g_target_angle >= 0:
+        shifted_target_angle = g_target_angle
+    else:
+        shifted_target_angle = 32000 + g_target_angle
+    # shift target_rotation
+    if g_target_rotation >= 0:
+        shifted_target_rotation = g_target_rotation
+    else:
+        shifted_target_rotation = 32000 + g_target_rotation
+
+    print(shifted_target_angle, shifted_target_rotation)
 
     command_head = 'H'
 
-    target_angle = 40  # * 0.001 deg (mdeg)
-    target_rotation = 0
+    target_angle_high = shifted_target_angle >> 8
+    target_angle_low = shifted_target_angle & 0x00ff
+    target_rotation_high = shifted_target_rotation >> 8
+    target_rotation_low = shifted_target_rotation & 0x00ff
 
-    target_angle_high = target_angle >> 8
-    target_angle_low = target_angle & 0x00ff
-    target_rotation_high = target_rotation >> 8
-    target_rotation_low = target_rotation & 0x00ff
-
-    P_gain_posture_high = global_pid_gain_posture[0] >> 8
-    P_gain_posture_low = global_pid_gain_posture[0] & 0x00ff
-    I_gain_posture_high = global_pid_gain_posture[1] >> 8
-    I_gain_posture_low = global_pid_gain_posture[1] & 0x00ff
-    D_gain_posture_high = global_pid_gain_posture[2] >> 8
-    D_gain_posture_low = global_pid_gain_posture[2] & 0x00ff
+    P_gain_posture_high = g_pid_gain_posture[0] >> 8
+    P_gain_posture_low = g_pid_gain_posture[0] & 0x00ff
+    I_gain_posture_high = g_pid_gain_posture[1] >> 8
+    I_gain_posture_low = g_pid_gain_posture[1] & 0x00ff
+    D_gain_posture_high = g_pid_gain_posture[2] >> 8
+    D_gain_posture_low = g_pid_gain_posture[2] & 0x00ff
 
     send_command = []
     send_command += [command_head, chr(target_angle_high), chr(
@@ -123,30 +137,42 @@ def get_MCU_data():
                            str(data_from_MCU[15]) + " [V]")
 
 
-# callback function to refresh PID gains those are subscribed
+# callback function to update PID gains those are subscribed
 def callback_update_PID_gains(new_PID_gains):
-    global global_pid_gain_posture
-    global_pid_gain_posture = new_PID_gains.pid_gains_for_posture
+    global g_pid_gain_posture
+    g_pid_gain_posture = new_PID_gains.pid_gains_for_posture
 
-    # show new PID gains after refreshing
+    # show new PID gains after updateing
     display_current_gains()
 
 
 # functions to display current PID gains to console
 def display_current_gains():
-    global global_pid_gain_posture
+    global g_pid_gain_posture
     rospy.loginfo("set PID gain for posture as " +
-                  str(global_pid_gain_posture))
+                  str(g_pid_gain_posture))
     print("")
+
+
+# function to update target angle
+def callback_update_target_angle(target_angle_message):
+    global g_target_angle
+    g_target_angle = target_angle_message.data
+
+
+# function to update target rotation
+def callback_update_target_rotation(target_rotation_message):
+    global g_target_rotation
+    g_target_rotation = target_rotation_message.data
 
 
 # function to inform current PID gains
 def publish_current_gains():
-    global global_pid_gain_posture
+    global g_pid_gain_posture
     current_PID_gains = PID_gains()
     for i in range(3):
         current_PID_gains.pid_gains_for_posture.append(
-            global_pid_gain_posture[i])
+            g_pid_gain_posture[i])
     pub_current_gains.publish(current_PID_gains)
     del current_PID_gains
 
@@ -174,9 +200,9 @@ if __name__ == '__main__':
 
     # subscriber to get target angle and target rotation of the robot
     rospy.Subscriber('target_angle', Int16,
-                     callback_refresh_target_angle, queue_size=1)
+                     callback_update_target_angle, queue_size=1)
     rospy.Subscriber('target_rotation', Int16,
-                     callback_refresh_target_angle, queue_size=1)
+                     callback_update_target_rotation, queue_size=1)
 
     # you should wait for a while until your arduino is ready
     time.sleep(5)
