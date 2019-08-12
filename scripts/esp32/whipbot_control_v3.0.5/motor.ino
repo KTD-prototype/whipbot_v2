@@ -20,24 +20,41 @@ bool motor_drive_enable() {
 }
 
 
-void motor_drive(int pwm_output) {
-  if (pwm_output >= 0) {
-    ledcWrite(CHANNEL_L, pwm_output);
-    ledcWrite(CHANNEL_R, pwm_output);
+int pwm_limit(int pwm_output) {
+  if (pwm_output > 4095) {
+    pwm_output = 4095;
+  }
+  else if (pwm_output < -4095) {
+    pwm_output = -4095;
+  }
+  return pwm_output;
+}
+
+
+void motor_drive_L(int pwm_L) {
+  if (pwm_L >= 0) {
+    ledcWrite(CHANNEL_L, pwm_L);
 
     digitalWrite(INA_L, HIGH);
     digitalWrite(INB_L, LOW);
+  }
+  else {
+    ledcWrite(CHANNEL_L, abs(pwm_L));
+
+    digitalWrite(INA_L, LOW);
+    digitalWrite(INB_L, HIGH);
+  }
+}
+
+void motor_drive_R(int pwm_R) {
+  if (pwm_R >= 0) {
+    ledcWrite(CHANNEL_R, pwm_R);
 
     digitalWrite(INA_R, LOW);
     digitalWrite(INB_R, HIGH);
   }
-
   else {
-    ledcWrite(CHANNEL_L, abs(pwm_output));
-    ledcWrite(CHANNEL_R, abs(pwm_output));
-
-    digitalWrite(INA_L, LOW);
-    digitalWrite(INB_L, HIGH);
+    ledcWrite(CHANNEL_R, abs(pwm_R));
 
     digitalWrite(INA_R, HIGH);
     digitalWrite(INB_R, LOW);

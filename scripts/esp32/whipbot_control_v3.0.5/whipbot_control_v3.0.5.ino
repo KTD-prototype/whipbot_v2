@@ -232,20 +232,16 @@ void loop() {
   pwm_output_L = pwm_output_L + target_rotation;
   pwm_output_R = pwm_output_R - target_rotation;
 
-  if (pwm_output_L > 4095) {
-    pwm_output_L = 4095;
-  }
-  else if (pwm_output_L < -4095) {
-    pwm_output_L = -4095;
-  }
-
+  pwm_output_L = pwm_limit(pwm_output_L);
+  pwm_output_R = pwm_limit(pwm_output_R);
 
   bool drive_flag = motor_drive_enable();
 
   if (drive_flag == true) {
     digitalWrite(DISABLE_L, HIGH);
     digitalWrite(DISABLE_R, HIGH);
-    motor_drive(pwm_output_L); //pwm_output_L and pwm_output_R is same value
+    motor_drive_L(pwm_output_L);
+    motor_drive_R(pwm_output_R);
   }
 
   else {
@@ -275,7 +271,9 @@ void loop() {
           Serial.println(imu_data[j]);
         }
         Serial.println(voltage);
-        
+
+        //        Serial.println(pwm_output_L);
+        //        Serial.println(pwm_output_R);
         //        Serial.println(target_angle);
         //        Serial.println(target_angular_velocity);
         //        Serial.println(Kp_posture);

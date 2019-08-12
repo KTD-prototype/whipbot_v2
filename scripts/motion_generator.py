@@ -31,17 +31,18 @@ g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 
 g_velocity_command = [0.0] * 2  # [linear, angular]
 
-target_angle = 0
+g_initial_target_angle = 40
 
 
 def motion_generator():
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
-    global g_velocity_command, target_angle
+    global g_velocity_command
+    global g_initial_target_angle
 
     if g_velocity_command[0] == 0 and g_velocity_command[1] == 0:
-        target_angle = (
-            g_current_robot_location[0] - g_target_robot_location[0]) * 800
+        target_angle = g_initial_target_angle + (
+            g_current_robot_location[0] - g_target_robot_location[0]) * 400
         target_rotation = (
             g_current_robot_location[2] - g_target_robot_location[2]) * 100
 
@@ -65,7 +66,7 @@ def motion_generator():
     pass
 
 
-def callback_update_PID_gains():
+def callback_update_PID_gains(new_PID_gains):
     pass
 
 
