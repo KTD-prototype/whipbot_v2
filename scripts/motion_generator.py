@@ -31,7 +31,7 @@ g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 
 g_velocity_command = [0.0] * 2  # [linear, angular]
 
-g_initial_target_angle = 40
+g_initial_target_angle = 45
 
 
 def motion_generator():
@@ -42,7 +42,8 @@ def motion_generator():
 
     if g_velocity_command[0] == 0 and g_velocity_command[1] == 0:
         target_angle = g_initial_target_angle + (
-            g_current_robot_location[0] - g_target_robot_location[0]) * 400
+            g_current_robot_location[0] - g_target_robot_location[0]) * 150 + \
+            g_current_robot_velocity[0] * 390
         target_rotation = (
             g_current_robot_location[2] - g_target_robot_location[2]) * 100
 

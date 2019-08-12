@@ -88,6 +88,7 @@ float target_angle = 0.0;
 int target_rotation = 0;
 float accumulated_angle_error = 0;
 float voltage = 0; // battery voltage
+int last_pwm_output_L = 0, last_pwm_output_R = 0;
 
 int current_time, passed_time, last_time;
 
@@ -235,6 +236,16 @@ void loop() {
   pwm_output_L = pwm_limit(pwm_output_L);
   pwm_output_R = pwm_limit(pwm_output_R);
 
+  bool flag = true;
+  if (abs(pwm_output_L - last_pwm_output_L) > 1000) {
+    pwm_output_L = last_pwm_output_L;
+    flag = false;
+  }
+  if (abs(pwm_output_R - last_pwm_output_R) > 1000) {
+    pwm_output_R = last_pwm_output_R;
+    flag = false;
+  }
+
   bool drive_flag = motor_drive_enable();
 
   if (drive_flag == true) {
@@ -272,8 +283,7 @@ void loop() {
         }
         Serial.println(voltage);
 
-        //        Serial.println(pwm_output_L);
-        //        Serial.println(pwm_output_R);
+        Serial.println(target_angle);
         //        Serial.println(target_angle);
         //        Serial.println(target_angular_velocity);
         //        Serial.println(Kp_posture);
@@ -300,5 +310,8 @@ void loop() {
       passed_time = 0;
     }
   }
-  delay(1);
+  //  delay(1);
+  // store pwm output
+  last_pwm_output_L = pwm_output_L;
+  last_pwm_output_R = pwm_output_R;
 }

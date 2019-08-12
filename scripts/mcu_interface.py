@@ -44,7 +44,7 @@ def get_MCU_data():
     else:
         shifted_target_rotation = 32000 + g_target_rotation
 
-    print(g_target_angle, g_target_rotation)
+    # print(g_target_angle, g_target_rotation)
 
     command_head = 'H'
 
@@ -79,11 +79,12 @@ def get_MCU_data():
         pass
     # print('received')
 
-    # i:0 to 15 : 16 data : encoder-L/R, roll, pitch, heading[rad],
+    # basically, the number of data is 16 ,0 to 15 : encoder-L/R, roll, pitch, heading[rad],
     # accelX,Y,Z[m/s2], gyroX,Y,Z[rad/s], magX,Y,Z[uT], temperature[degC], battery_voltage[v]
-    data_from_MCU = [0.0] * 16
+    NUMBER_OF_DATA = 17
+    data_from_MCU = [0.0] * NUMBER_OF_DATA
     reset_flag = False
-    for i in range(16):
+    for i in range(NUMBER_OF_DATA):
         data_from_MCU[i] = ser.readline()  # read data line by line
         # remove return code and end point null
         data_from_MCU[i] = data_from_MCU[i].replace('\r\n', '')
@@ -136,7 +137,7 @@ def get_MCU_data():
             rospy.logfatal("battery voltage : " +
                            str(data_from_MCU[15]) + " [V]")
 
-        # print(data_from_MCU[16], data_from_MCU[17])
+        print(data_from_MCU[16])
 
 
 # callback function to update PID gains those are subscribed
