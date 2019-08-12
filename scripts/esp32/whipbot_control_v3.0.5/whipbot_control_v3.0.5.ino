@@ -84,12 +84,10 @@ float posture_angle[3]; //roll, pitch, heading
 
 // parameters for porsture control of the robot
 int Kp_posture = 0, Ki_posture = 0, Kd_posture = 0; //PID gains will modified through command from host PC
-float target_angle = 0.0, target_angular_velocity = 0.0;
+float target_angle = 0.0;
+int target_rotation = 0;
 float accumulated_angle_error = 0;
 float voltage = 0; // battery voltage
-
-// velocity command from host PC. Unit is [cm/sec], [*0.01 rad/sec] when gain is 1
-float velocity_command_linear = 0, velocity_command_angular = 0;
 
 int current_time, passed_time, last_time;
 
@@ -230,13 +228,17 @@ void loop() {
   accumulated_angle_error += (posture_angle[1] - target_angle);
   pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * -1 * 0.005 * accumulated_angle_error;
 
+  pwm_output_R = pwm_output_L;
+  pwm_output_L = pwm_output_L + target_rotation;
+  pwm_output_R = pwm_output_R - target_rotation;
+
   if (pwm_output_L > 4095) {
     pwm_output_L = 4095;
   }
   else if (pwm_output_L < -4095) {
     pwm_output_L = -4095;
   }
-  pwm_output_R = pwm_output_L;
+
 
   bool drive_flag = motor_drive_enable();
 
@@ -258,8 +260,8 @@ void loop() {
   if (COM_FLAG == true) {
     if (Serial.available() >= 3) {
       if (Serial.read() == 'H') {
-        target_angle = 0.001 * (float(receive_data()));
-        target_angular_velocity = receive_data();
+        target_angle = 0.001 * (float(receive_target()));
+        target_rotation = receive_target();
         Kp_posture = receive_data();
         Ki_posture = receive_data();
         Kd_posture = receive_data();

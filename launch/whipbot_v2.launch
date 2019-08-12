@@ -1,6 +1,7 @@
 <launch>
 
   <node name="mcu_interface" pkg="whipbot_v2" type="mcu_interface.py" output="screen"/>
+  <node name="motion_generator" pkg="whipbot_v2" type="motion_generator.py" output="screen"/>
 
   <node name="wheel_odometry"   pkg="wheel_odometry" type="wheel_odometry_2wheel.py" output="screen">
     <param name="pulse_per_round" value="723.24"/>
