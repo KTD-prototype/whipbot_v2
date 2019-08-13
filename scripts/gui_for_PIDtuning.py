@@ -138,7 +138,7 @@ class Test(Frame):
     def createWidgets(self):
         # scale for posture control gains
         self.slider_Pgain_pos = Scale(self, from_=0, to=5000,
-                                      # value=50,
+                                      value=1800,
                                       orient=HORIZONTAL,
                                       length="8i",
                                       label="P gain for POS",
@@ -153,8 +153,8 @@ class Test(Frame):
                                       command=self.set_Igain_for_posture)
         self.slider_Igain_pos.set(current_PID_gains_posture[1])
 
-        self.slider_Dgain_pos = Scale(self, from_=0, to=100,
-                                      # value=50,
+        self.slider_Dgain_pos = Scale(self, from_=0, to=50,
+                                      value=5,
                                       orient=HORIZONTAL,
                                       length="8i",
                                       label="D gain for POS",
