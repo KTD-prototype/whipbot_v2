@@ -17,6 +17,7 @@ import tf
 import math
 from std_msgs.msg import Int16
 from nav_msgs.msg import Odometry
+from sensor_msgs.msg import Joy
 from whipbot_v2.msg import PID_gains
 
 # prepare global parameters for robot's state
@@ -33,26 +34,35 @@ g_target_robot_location = [0.0] * 3  # [x,y,theta]
 g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 
 # velocity command sent from other nodes
-g_velocity_command = [0.0] * 2  # [linear, angular]
-
-# default target tilt angle of the robot
-g_initial_target_angle = 40
+# command from joystick
+g_velocity_command_joy = [0.0] * 2  # [linear, angular]
+# command from autonomous driving node
+g_velocity_command_autonomous = [0.0] * 2
 
 # gains sent from GUI
 g_gains_for_linear_velocity = [0] * 3  # P,I,D gain
 g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
-# P & D for linear position, P for heading
+# P & D gain for linear position, P gain for heading
 g_gains_for_position_control = [0] * 3
 
 g_last_time = 0  # timestamp to calculate acceleration of the robot
+
+
+# fixed parameters
+# default target tilt angle of the robot
+G_INITIAL_TARGET_ANGLE = 40
+
+# gain for velocity command from joystick
+JOY_GAIN_LINEAR = 0.5
+JOY_GAIN_ANGULAR = 0.5
 
 
 def motion_generator():
     # declare global parameters
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
-    global g_velocity_command, g_last_time
-    global g_initial_target_angle
+    global g_velocity_command_joy, g_velocity_command_autonomous
+    global G_INITIAL_TARGET_ANGLE, g_last_time
     global g_gains_for_position_control, g_gains_for_angular_velocity
 
     # calculate acceleration of the robot
@@ -66,28 +76,37 @@ def motion_generator():
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
+    # if there're velocity command from joy, control robot's motion by-
+    # it's velocity at 1st priority (enable override on autonomous drive command)
+    if g_velocity_command_joy[0] != 0 or g_velocity_command_joy[1] != 0:
+        # calculate target tilt angle of the robot based on it's velocity
+        target_angle = G_INITIAL_TARGET_ANGLE + \
+            (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
+            g_gains_for_linear_velocity[0] + \
+            robot_linear_accel * g_gains_for_linear_velocity[2]
+        # calculate rotation command for the robot based on it's velocity
+        # be careful it looks like velocity feedback control, but "target_rotation"
+        # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
+        target_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+            (-1) * g_gains_for_angular_velocity[0] - \
+            robot_angular_accel * g_gains_for_angular_velocity[2]
+
+    # otherwise, control based on autonomous drive mode
+    elif g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
+        # autonomous maneuver mode are not implemented yet
+        pass
+
     # if there're no velocity command, control the robot to maintain current location and heading
-    if g_velocity_command[0] == 0 and g_velocity_command[1] == 0:
-        target_angle = g_initial_target_angle + (
+    else:
+        # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
+        target_angle = G_INITIAL_TARGET_ANGLE + (
             g_current_robot_location[0] - g_target_robot_location[0])\
             * g_gains_for_position_control[0] + g_current_robot_velocity[0] * g_gains_for_position_control[1]
         target_rotation = (
             g_current_robot_location[2] - g_target_robot_location[2])\
             * g_gains_for_position_control[2]
 
-    # if there're velocity command, control robot's motion by it's velocity
-    else:
-        # calculate target tilt angle of the robot based on it's velocity
-        target_angle = g_initial_target_angle + \
-            (-1) * (g_velocity_command[0] - g_current_robot_velocity[0]) * \
-            g_gains_for_linear_velocity[0] + \
-            robot_linear_accel * g_gains_for_linear_velocity[2]
-        # calculate rotation command for the robot based on it's velocity
-        target_rotation = (g_velocity_command[1] - g_current_robot_velocity[1]) * \
-            g_gains_for_angular_velocity[0] - \
-            robot_angular_accel * g_gains_for_angular_velocity[2]
-
-    # restrict range
+    # restrict range of motion command
     # target angle from -1000 to 1000 [*0.001 rad]
     if target_angle > 1000:
         target_angle = 1000
@@ -99,9 +118,9 @@ def motion_generator():
     elif target_rotation < -1000:
         target_rotation = -1000
 
+    # publish motion command as messages
     pub_target_angle.publish(target_angle)
     pub_target_rotation.publish(target_rotation)
-    # print(g_gains_for_position_control)
 
 
 def callback_update_PID_gains(new_PID_gains):
@@ -131,6 +150,17 @@ def callback_update_odometry(wheel_odometry):
     g_current_robot_location = (wheel_odometry.pose.pose.position.x,
                                 wheel_odometry.pose.pose.position.y,
                                 current_robot_orientation_euler[2])
+
+
+def callback_update_joycommand(joy_msg):
+    global g_velocity_command_joy
+    global JOY_GAIN_LINEAR, JOY_GAIN_ANGULAR
+
+    # get command from left joy stick as velocity commands
+    g_velocity_command_joy[0] = joy_msg.axes[1] * \
+        JOY_GAIN_LINEAR  # [m/s] left stick F/R
+    g_velocity_command_joy[1] = joy_msg.axes[0] * \
+        JOY_GAIN_ANGULAR  # left stick L/R
 
 
 # function to inform current PID gains
@@ -164,6 +194,9 @@ if __name__ == '__main__':
     # subscriber to get wheel odometry data
     rospy.Subscriber('wheel_odometry_2wheel', Odometry,
                      callback_update_odometry, queue_size=1)
+
+    # subscriber for joystick command
+    rospy.Subscriber('joy', Joy, callback_update_joycommand, queue_size=1)
 
     # set the loop rate at 50Hz (higher is better, but it looks 60Hz is MAXIMUM for my environment)
     rate = rospy.Rate(10)
