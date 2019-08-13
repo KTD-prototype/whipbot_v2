@@ -68,12 +68,15 @@ def motion_generator():
 
     pub_target_angle.publish(target_angle)
     pub_target_rotation.publish(target_rotation)
-    pass
+    print(g_gains_for_position_control)
 
 
 def callback_update_PID_gains(new_PID_gains):
+    global g_gains_for_position_control
+
     g_gains_for_position_control = new_PID_gains.pid_gains_for_position_control
     # publish_current_gains()
+    # print(g_gains_for_position_control)
 
 
 def callback_update_odometry(wheel_odometry):
