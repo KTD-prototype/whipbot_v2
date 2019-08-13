@@ -92,6 +92,7 @@ def get_MCU_data():
             time.sleep(5)
             ser.reset_input_buffer()
             reset_flag = True
+            target_angle = 45
             break
 
         # convert into float type parameter

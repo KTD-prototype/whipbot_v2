@@ -20,29 +20,40 @@ from nav_msgs.msg import Odometry
 from whipbot_v2.msg import PID_gains
 
 # prepare global parameters for robot's state
+# current motion of the robot
 g_current_robot_location = [0.0] * 3  # [x,y,theta]
 g_current_robot_velocity = [0.0] * 2  # [linear, angular]
 
+# last motion of the robot
 g_last_robot_location = [0.0] * 3  # [x,y,theta]
 g_last_robot_velocity = [0.0] * 2  # [linear, angular]
 
+# desired motion of the robot
 g_target_robot_location = [0.0] * 3  # [x,y,theta]
 g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 
+# velocity command sent from other nodes
 g_velocity_command = [0.0] * 2  # [linear, angular]
 
-g_initial_target_angle = 45
+# default target tilt angle of the robot
+g_initial_target_angle = 40
 
+# gains sent from GUI
+g_gains_for_linear_velocity = [0] * 3  # P,I,D gain
+g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
 # P & D for linear position, P for heading
 g_gains_for_position_control = [0] * 3
 
 
 def motion_generator():
+    # declare global parameters
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command
-    global g_initial_target_angle, g_gains_for_position_control
+    global g_initial_target_angle
+    global g_gains_for_position_control, g_gains_for_angular_velocity
 
+    # if there're no velocity command, control the robot to maintain current location and heading
     if g_velocity_command[0] == 0 and g_velocity_command[1] == 0:
         target_angle = g_initial_target_angle + (
             g_current_robot_location[0] - g_target_robot_location[0])\
@@ -51,8 +62,11 @@ def motion_generator():
             g_current_robot_location[2] - g_target_robot_location[2])\
             * g_gains_for_position_control[2]
 
+    # if there're velocity command, control robot's motion by it's velocity
     else:
-        pass
+        target_angle = g_initial_target_angle + \
+            (-1) * (g_velocity_command[0] - g_current_robot_velocity[0]
+                    ) * g_gains_for_linear_velocity[0]　
 
     # restrict range
     # target angle from -1000 to 1000 [*0.001 rad]
@@ -68,7 +82,7 @@ def motion_generator():
 
     pub_target_angle.publish(target_angle)
     pub_target_rotation.publish(target_rotation)
-    print(g_gains_for_position_control)
+    # print(g_gains_for_position_control)
 
 
 def callback_update_PID_gains(new_PID_gains):

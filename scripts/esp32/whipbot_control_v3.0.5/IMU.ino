@@ -41,7 +41,7 @@ void complementary_filter(float *posture_angle_func, float *imu_data_func) {
   //  coefficient of complementary filter
   float C = 1;  //  coefficient C
   float g;  // scale of accelereration
-  float J = 0.5;  // coefficient of LPF on calculating posture angle based on accelerometer
+  float J = 0.8;  // coefficient of LPF on calculating posture angle based on accelerometer
   float k;  //  weight of filtering in complementary filter
 
   ACC_pitch = J * ACC_pitch + (1 - J) * atan2(imu_data_func[1],  imu_data_func[2]);
