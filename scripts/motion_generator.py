@@ -33,19 +33,23 @@ g_velocity_command = [0.0] * 2  # [linear, angular]
 
 g_initial_target_angle = 45
 
+# P & D for linear position, P for heading
+g_gains_for_position_control = [0] * 3
+
 
 def motion_generator():
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command
-    global g_initial_target_angle
+    global g_initial_target_angle, g_gains_for_position_control
 
     if g_velocity_command[0] == 0 and g_velocity_command[1] == 0:
         target_angle = g_initial_target_angle + (
-            g_current_robot_location[0] - g_target_robot_location[0]) * 150 + \
-            g_current_robot_velocity[0] * 390
+            g_current_robot_location[0] - g_target_robot_location[0])\
+            * g_gains_for_position_control[0] + g_current_robot_velocity[0] * g_gains_for_position_control[1]
         target_rotation = (
-            g_current_robot_location[2] - g_target_robot_location[2]) * 100
+            g_current_robot_location[2] - g_target_robot_location[2])\
+            * g_gains_for_position_control[2]
 
     else:
         pass
@@ -68,7 +72,8 @@ def motion_generator():
 
 
 def callback_update_PID_gains(new_PID_gains):
-    pass
+    g_gains_for_position_control = new_PID_gains.pid_gains_for_position_control
+    # publish_current_gains()
 
 
 def callback_update_odometry(wheel_odometry):
@@ -91,7 +96,16 @@ def callback_update_odometry(wheel_odometry):
                                 wheel_odometry.pose.pose.position.y,
                                 current_robot_orientation_euler[2])
 
-    pass
+
+# function to inform current PID gains
+def publish_current_gains():
+    global g_gains_for_position_control
+    current_PID_gains = PID_gains()
+    for i in range(3):
+        current_PID_gains.pid_gains_for_posture.append(
+            g_gains_for_position_control[i])
+    pub_current_gains.publish(current_PID_gains)
+    del current_PID_gains
 
 
 if __name__ == '__main__':
@@ -103,6 +117,10 @@ if __name__ == '__main__':
         'target_angle', Int16, queue_size=1, latch=True)
     pub_target_rotation = rospy.Publisher(
         'target_rotation', Int16, queue_size=1, latch=True)
+
+    # publisher to inform current PID gains
+    pub_current_gains = rospy.Publisher(
+        'current_PID_gains', PID_gains, queue_size=1, latch=True)
 
     # (for tuning) subscriber for change PID gains via message
     rospy.Subscriber('new_PID_gains', PID_gains, callback_update_PID_gains)

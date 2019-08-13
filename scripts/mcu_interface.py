@@ -146,7 +146,8 @@ def callback_update_PID_gains(new_PID_gains):
     g_pid_gain_posture = new_PID_gains.pid_gains_for_posture
 
     # show new PID gains after updateing
-    display_current_gains()
+    # display_current_gains()
+    # publish_current_gains()
 
 
 # functions to display current PID gains to console
