@@ -138,7 +138,7 @@ def get_MCU_data():
             rospy.logfatal("battery voltage : " +
                            str(data_from_MCU[15]) + " [V]")
 
-        print(data_from_MCU[16])
+        # print(data_from_MCU[16])
 
 
 # callback function to update PID gains those are subscribed
