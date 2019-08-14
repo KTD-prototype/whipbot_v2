@@ -47,6 +47,9 @@ g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
 g_gains_for_position_control = [0] * 3
 
 g_last_time = 0  # timestamp to calculate acceleration of the robot
+g_last_time_2 = 0  # timestamp for calibration
+# if True, execute calibration of the initial target angle
+g_calibrate_initial_target_angle_flag = False
 
 
 # fixed parameters
@@ -63,7 +66,7 @@ def motion_generator():
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command_joy, g_velocity_command_flag, g_velocity_command_autonomous
-    global g_initial_target_angle, g_last_time
+    global g_initial_target_angle, g_last_time, g_last_time_2
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
@@ -174,6 +177,7 @@ def callback_update_odometry(wheel_odometry):
 def callback_update_joycommand(joy_msg):
     global g_velocity_command_joy, g_velocity_command_flag
     global JOY_GAIN_LINEAR, JOY_GAIN_ANGULAR
+    global g_calibrate_initial_target_angle_flag
 
     # get trigger for velocity command
     g_velocity_command_flag = joy_msg.buttons[4]
@@ -182,6 +186,9 @@ def callback_update_joycommand(joy_msg):
         JOY_GAIN_LINEAR  # [m/s] left stick F/R
     g_velocity_command_joy[1] = joy_msg.axes[0] * \
         JOY_GAIN_ANGULAR  # left stick L/R
+
+    # get tregger for calibrating initial target angle
+    g_calibrate_initial_target_angle_flag = joy_msg.buttons[5]
 
 
 # function to inform current PID gains
