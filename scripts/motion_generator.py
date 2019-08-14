@@ -138,12 +138,13 @@ def callback_update_PID_gains(new_PID_gains):
     g_gains_for_position_control = new_PID_gains.pid_gains_for_position_control
 
     # display current gains
-    rospy.loginfo("posture control gains : " + gains_for_posture_control)
-    rospy.loginfo("linear velo ctrl gains ; " + g_gains_for_linear_velocity)
-    rospy.loginfo("angular velo ctrl gains : " + g_gains_for_angular_velocity)
-    rospy.loginfo("position control gains : " + g_gains_for_position_control)
-    # publish_current_gains()
-    # print(g_gains_for_position_control)
+    rospy.loginfo("posture control gains : " + str(gains_for_posture_control))
+    rospy.loginfo("linear velo ctrl gains ; " +
+                  str(g_gains_for_linear_velocity))
+    rospy.loginfo("angular velo ctrl gains : " +
+                  str(g_gains_for_angular_velocity))
+    rospy.loginfo("position control gains : " +
+                  str(g_gains_for_position_control))
 
 
 def callback_update_odometry(wheel_odometry):
