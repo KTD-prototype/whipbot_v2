@@ -50,7 +50,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 
 # fixed parameters
 # default target tilt angle of the robot
-G_INITIAL_TARGET_ANGLE = 40
+g_initial_target_angle = 40
 
 # gain for velocity command from joystick
 JOY_GAIN_LINEAR = 0.5
@@ -62,8 +62,9 @@ def motion_generator():
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command_joy, g_velocity_command_autonomous
-    global G_INITIAL_TARGET_ANGLE, g_last_time
-    global g_gains_for_position_control, g_gains_for_angular_velocity
+    global g_initial_target_angle, g_last_time
+    global g_gains_for_position_control
+    global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
     # calculate acceleration of the robot
     # calculate delta t from last loop
@@ -78,9 +79,10 @@ def motion_generator():
 
     # if there're velocity command from joy, control robot's motion by-
     # it's velocity at 1st priority (enable override on autonomous drive command)
+    print(g_velocity_command_joy)
     if g_velocity_command_joy[0] != 0 or g_velocity_command_joy[1] != 0:
         # calculate target tilt angle of the robot based on it's velocity
-        target_angle = G_INITIAL_TARGET_ANGLE + \
+        target_angle = g_initial_target_angle + \
             (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
             g_gains_for_linear_velocity[0] + \
             robot_linear_accel * g_gains_for_linear_velocity[2]
@@ -99,7 +101,7 @@ def motion_generator():
     # if there're no velocity command, control the robot to maintain current location and heading
     else:
         # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
-        target_angle = G_INITIAL_TARGET_ANGLE + (
+        target_angle = g_initial_target_angle + (
             g_current_robot_location[0] - g_target_robot_location[0])\
             * g_gains_for_position_control[0] + g_current_robot_velocity[0] * g_gains_for_position_control[1]
         target_rotation = (
@@ -127,9 +129,19 @@ def callback_update_PID_gains(new_PID_gains):
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
     global g_gains_for_position_control
 
+    # contain new gains to parameters
+    # contain gains for posture control only for display it
+    gains_for_posture_control = new_PID_gains.pid_gains_for_posture
+    # contain the other gains for motion command
     g_gains_for_linear_velocity = new_PID_gains.pid_gains_for_linear_velocity
     g_gains_for_angular_velocity = new_PID_gains.pid_gains_for_angular_velocity
     g_gains_for_position_control = new_PID_gains.pid_gains_for_position_control
+
+    # display current gains
+    rospy.loginfo("posture control gains : " + gains_for_posture_control)
+    rospy.loginfo("linear velo ctrl gains ; " + g_gains_for_linear_velocity)
+    rospy.loginfo("angular velo ctrl gains : " + g_gains_for_angular_velocity)
+    rospy.loginfo("position control gains : " + g_gains_for_position_control)
     # publish_current_gains()
     # print(g_gains_for_position_control)
 
