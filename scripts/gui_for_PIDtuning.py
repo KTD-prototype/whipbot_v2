@@ -201,7 +201,7 @@ class Test(Frame):
         # self.slider_Dgain_pos.set(current_PID_gains_posture[2])
 
         # scale for linear velocity control gains
-        self.slider_Pgain_linVel = Scale(self, from_=0, to=200,
+        self.slider_Pgain_linVel = Scale(self, from_=0, to=500,
                                          # value=50,
                                          orient=HORIZONTAL,
                                          length="8i",
