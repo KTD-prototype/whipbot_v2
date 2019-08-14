@@ -36,6 +36,7 @@ g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 # velocity command sent from other nodes
 # command from joystick
 g_velocity_command_joy = [0.0] * 2  # [linear, angular]
+g_velocity_command_flag = False  # if False, disable remote control
 # command from autonomous driving node
 g_velocity_command_autonomous = [0.0] * 2
 
@@ -61,7 +62,7 @@ def motion_generator():
     # declare global parameters
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
-    global g_velocity_command_joy, g_velocity_command_autonomous
+    global g_velocity_command_joy, g_velocity_command_flag, g_velocity_command_autonomous
     global g_initial_target_angle, g_last_time
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
@@ -77,35 +78,38 @@ def motion_generator():
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
-    # if there're velocity command from joy, control robot's motion by-
+    # by default, control the robot to maintain current location and heading
+    # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
+    target_angle = g_initial_target_angle + (
+        g_current_robot_location[0] - g_target_robot_location[0])\
+        * g_gains_for_position_control[0] + g_current_robot_velocity[0] * g_gains_for_position_control[1]
+    target_rotation = (
+        g_current_robot_location[2] - g_target_robot_location[2])\
+        * g_gains_for_position_control[2]
+
+    # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
-    if g_velocity_command_joy[0] != 0 or g_velocity_command_joy[1] != 0:
-        # calculate target tilt angle of the robot based on it's velocity
-        target_angle = g_initial_target_angle + \
-            (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
-            g_gains_for_linear_velocity[0] + \
-            robot_linear_accel * g_gains_for_linear_velocity[2]
+    # first of all, check the flag for remote control
+    if g_velocity_command_flag == True:
+        print(g_velocity_command_flag)
+        if g_velocity_command_joy[0] != 0:
+            # calculate target tilt angle of the robot based on it's velocity
+            target_angle = g_initial_target_angle + \
+                (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
+                g_gains_for_linear_velocity[0] + \
+                robot_linear_accel * g_gains_for_linear_velocity[2]
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "target_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
-        target_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
-            (-1) * g_gains_for_angular_velocity[0] - \
-            robot_angular_accel * g_gains_for_angular_velocity[2]
+        if g_velocity_command_joy[1] != 0:
+            target_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+                (-1) * g_gains_for_angular_velocity[0] - \
+                robot_angular_accel * g_gains_for_angular_velocity[2]
 
     # otherwise, control based on autonomous drive mode
     elif g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
         # autonomous maneuver mode are not implemented yet
         pass
-
-    # if there're no velocity command, control the robot to maintain current location and heading
-    else:
-        # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
-        target_angle = g_initial_target_angle + (
-            g_current_robot_location[0] - g_target_robot_location[0])\
-            * g_gains_for_position_control[0] + g_current_robot_velocity[0] * g_gains_for_position_control[1]
-        target_rotation = (
-            g_current_robot_location[2] - g_target_robot_location[2])\
-            * g_gains_for_position_control[2]
 
     # restrict range of motion command
     # target angle from -1000 to 1000 [*0.001 rad]
@@ -168,9 +172,11 @@ def callback_update_odometry(wheel_odometry):
 
 
 def callback_update_joycommand(joy_msg):
-    global g_velocity_command_joy
+    global g_velocity_command_joy, g_velocity_command_flag
     global JOY_GAIN_LINEAR, JOY_GAIN_ANGULAR
 
+    # get trigger for velocity command
+    g_velocity_command_flag = joy_msg.buttons[4]
     # get command from left joy stick as velocity commands
     g_velocity_command_joy[0] = joy_msg.axes[1] * \
         JOY_GAIN_LINEAR  # [m/s] left stick F/R
