@@ -201,7 +201,7 @@ class Test(Frame):
         # self.slider_Dgain_pos.set(current_PID_gains_posture[2])
 
         # scale for linear velocity control gains
-        self.slider_Pgain_linVel = Scale(self, from_=0, to=100,
+        self.slider_Pgain_linVel = Scale(self, from_=0, to=200,
                                          # value=50,
                                          orient=HORIZONTAL,
                                          length="8i",
@@ -226,7 +226,7 @@ class Test(Frame):
         # self.slider_Dgain_linVel.set(current_PID_gains_linear_velocity[2])
 
         # scale for angular velocity control gains
-        self.slider_Pgain_angVel = Scale(self, from_=0, to=100,
+        self.slider_Pgain_angVel = Scale(self, from_=0, to=500,
                                          # value=50,
                                          orient=HORIZONTAL,
                                          length="8i",
@@ -242,7 +242,7 @@ class Test(Frame):
                                          command=self.set_Igain_for_angular_velocity)
         # self.slider_Igain_angVel.set(current_PID_gains_angular_velocity[1])
 
-        self.slider_Dgain_angVel = Scale(self, from_=0, to=100,
+        self.slider_Dgain_angVel = Scale(self, from_=0, to=500,
                                          # value=50,
                                          orient=HORIZONTAL,
                                          length="8i",
