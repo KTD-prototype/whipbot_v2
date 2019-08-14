@@ -147,14 +147,6 @@ def callback_update_PID_gains(new_PID_gains):
     g_pid_gain_posture = new_PID_gains.pid_gains_for_posture
 
 
-# functions to display current PID gains to console
-# def display_current_gains():
-#     global g_pid_gain_posture
-#     rospy.loginfo("set PID gain for posture as " +
-#                   str(g_pid_gain_posture))
-#     print("")
-
-
 # function to update target angle
 def callback_update_target_angle(target_angle_message):
     global g_target_angle
@@ -165,17 +157,6 @@ def callback_update_target_angle(target_angle_message):
 def callback_update_target_rotation(target_rotation_message):
     global g_target_rotation
     g_target_rotation = target_rotation_message.data
-
-
-# function to inform current PID gains
-# def publish_current_gains():
-#     global g_pid_gain_posture
-#     current_PID_gains = PID_gains()
-#     for i in range(3):
-#         current_PID_gains.pid_gains_for_posture.append(
-#             g_pid_gain_posture[i])
-#     pub_current_gains.publish(current_PID_gains)
-#     del current_PID_gains
 
 
 if __name__ == '__main__':
