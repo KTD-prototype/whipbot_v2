@@ -32,7 +32,7 @@ g_target_rotation = 0  # target of robot's rotation
 def get_MCU_data():
     global g_pid_gain_posture, g_target_angle, g_target_rotation
 
-    # shift range of the targets to positive number for send as char
+    # shift range of the targets to positive number to send as char
     # shift target angle
     if g_target_angle >= 0:
         shifted_target_angle = g_target_angle
@@ -44,7 +44,7 @@ def get_MCU_data():
     else:
         shifted_target_rotation = 32000 + g_target_rotation
 
-    # print(g_target_angle, g_target_rotation)
+    print(g_target_angle, g_target_rotation)
 
     command_head = 'H'
 
