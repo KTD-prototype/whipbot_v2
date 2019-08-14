@@ -79,7 +79,6 @@ def motion_generator():
 
     # if there're velocity command from joy, control robot's motion by-
     # it's velocity at 1st priority (enable override on autonomous drive command)
-    print(g_velocity_command_joy)
     if g_velocity_command_joy[0] != 0 or g_velocity_command_joy[1] != 0:
         # calculate target tilt angle of the robot based on it's velocity
         target_angle = g_initial_target_angle + \
