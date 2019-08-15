@@ -194,7 +194,7 @@ def callback_update_joycommand(joy_msg):
 
     # get tregger for calibrating initial target angle
     g_calibrate_initial_target_angle_flag = joy_msg.buttons[5]
-    if g_calibrate_initial_target_angle_flag = True:
+    if g_calibrate_initial_target_angle_flag == True:
         calibrate_initial_target_angle()
 
 
