@@ -65,6 +65,8 @@ g_first_loop_of_calibration = True
 # parameters for Max and min of ocsilation of location during hovering
 g_maximum_locatin_during_hover = 0.0
 g_minimum_location_during_hover = 0.0
+# gain to calibrate target angle
+CALIBRATION_GAIN = 20
 
 # gain for velocity command from joystick
 JOY_GAIN_LINEAR = 0.5
@@ -201,18 +203,23 @@ def callback_update_joycommand(joy_msg):
     g_velocity_command_joy[1] = joy_msg.axes[0] * \
         JOY_GAIN_ANGULAR  # left stick L/R
 
-    # get tregger for calibrating initial target angle
-    g_start_calibration_flag = joy_msg.buttons[5]
-    # if the flag is true, start calibration process
+    # check calibration trigger only if the calibration flag is FALSE
+    if g_start_calibration_flag == False:
+        # get tregger for calibrating initial target angle
+        g_start_calibration_flag = joy_msg.buttons[5]
+
+    # if the calibration flag is true, run calibration process
     if g_start_calibration_flag == True:
         calibrate_initial_target_angle()
 
 
+# calibration process of target angle
 def calibrate_initial_target_angle():
     global g_start_time_calib
     global g_start_calibration_flag, g_first_loop_of_calibration
     global g_maximum_locatin_during_hover, g_minimum_location_during_hover
     global g_current_robot_location, g_initial_target_angle
+    global CALIBRATION_GAIN
 
     # if it is a first loop of calibration process, update parameters for calibration
     if g_first_loop_of_calibration == True:
@@ -220,6 +227,7 @@ def calibrate_initial_target_angle():
         g_maximum_locatin_during_hover = g_current_robot_location[0]
         g_minimum_location_during_hover = g_current_robot_location[0]
         g_first_loop_of_calibration = False
+        rospy.loginfo("calibration started at " + str(g_start_time_calib))
 
     # update Max and min of the oscillation of the location during hovering
     if g_current_robot_location[0] > g_maximum_locatin_during_hover:
@@ -227,8 +235,8 @@ def calibrate_initial_target_angle():
     if g_current_robot_location[0] < g_minimum_location_during_hover:
         g_minimum_location_during_hover = g_current_robot_location[0]
 
-    # if 2 seconds have passed since the process started, calibrate target angle
-    if time.time() - g_start_time_calib > 2:
+    # if 4 seconds have passed since the process started, calibrate target angle
+    if time.time() - g_start_time_calib > 4:
         mean_location_during_hovering = (
             g_maximum_locatin_during_hover + g_minimum_location_during_hover) / 2
 
