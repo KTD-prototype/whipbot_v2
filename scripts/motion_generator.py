@@ -51,7 +51,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 
 # fixed parameters
 # default target tilt angle of the robot
-g_initial_target_angle = 40
+g_initial_target_angle = 50
 
 # global parameters for calibrating initial target angle
 # timestamp for calibration
@@ -69,20 +69,19 @@ g_minimum_location_during_hover = 0.0
 CALIBRATION_GAIN = 30
 
 # gain for velocity command from joystick
-JOY_GAIN_LINEAR = 0.5
-JOY_GAIN_ANGULAR = 0.5
+JOY_GAIN_LINEAR = 0.1
+JOY_GAIN_ANGULAR = 1
 
 
 def motion_generator():
     # declare global parameters
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
-    global g_velocity_command_joy, g_velocity_command_flag, g_velocity_command_autonomous
-    global g_initial_target_angle, g_last_time, g_last_time_2
+    global g_velocity_command_joy, g_velocity_command_flag
+    global g_velocity_command_autonomous
+    global g_initial_target_angle, g_last_time
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
-
-    print(g_target_robot_location[0])
 
     # calculate acceleration of the robot
     # calculate delta t from last loop
@@ -109,22 +108,25 @@ def motion_generator():
     # first of all, check the flag for remote control
     if g_velocity_command_flag == True:
         if g_velocity_command_joy[0] != 0:
+            # turn the flag on that robot are remote controlled
+            g_remote_control_linear_flag = True
             # calculate target tilt angle of the robot based on it's velocity
-            target_angle = g_initial_target_angle + \
+            target_angle = target_angle + \
                 (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
                 g_gains_for_linear_velocity[0] + \
-                robot_linear_accel * g_gains_for_linear_velocity[2]
-            # update target robot location to current robot location
+                robot_linear_accel * g_gains_for_linear_velocity[2] * 0.1
             g_target_robot_location[0] = g_current_robot_location[0]
 
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "target_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
-            target_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+            # turn the flag on that robot are remote controlled
+            g_remote_control_angular_flag = True
+            # calculate target rotation power of the robot
+            target_rotation = target_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
-            # update target robot heading to current robot heading
             g_target_robot_location[2] = g_current_robot_location[2]
 
     # otherwise, control based on autonomous drive mode
@@ -147,6 +149,8 @@ def motion_generator():
     # publish motion command as messages
     pub_target_angle.publish(target_angle)
     pub_target_rotation.publish(target_rotation)
+    # print(target_angle,
+    #       g_target_robot_location[0], g_current_robot_location[0])
 
 
 def callback_update_PID_gains(new_PID_gains):
@@ -202,6 +206,7 @@ def callback_update_joycommand(joy_msg):
     # get command from left joy stick as velocity commands
     g_velocity_command_joy[0] = joy_msg.axes[1] * \
         JOY_GAIN_LINEAR  # [m/s] left stick F/R
+
     g_velocity_command_joy[1] = joy_msg.axes[0] * \
         JOY_GAIN_ANGULAR  # left stick L/R
 
@@ -287,7 +292,8 @@ if __name__ == '__main__':
                      callback_update_odometry, queue_size=1)
 
     # subscriber for joystick command
-    rospy.Subscriber('joy', Joy, callback_update_joycommand, queue_size=1)
+    rospy.Subscriber('joy', Joy, callback_update_joycommand,
+                     queue_size=1)
 
     # set the loop rate at 50Hz (higher is better, but it looks 60Hz is MAXIMUM for my environment)
     rate = rospy.Rate(10)

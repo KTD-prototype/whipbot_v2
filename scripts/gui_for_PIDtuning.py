@@ -23,11 +23,18 @@ current_PID_gains_angular_velocity = [0] * 3  # P, I, D
 # P & D for linear position, P for heading
 current_PID_gains_positon_control = [0] * 3
 
-DEFAULT_PID_GAINS_POSTURE = [1700, 0, 3]  # P, I, D
-DEFAULT_PID_GAINS_LINEAR_VELOCITY = [0] * 3  # P, I, D
-DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [0] * 3  # P, I, D
+DEFAULT_PID_GAINS_POSTURE = [1800, 1, 9]  # P, I, D
+DEFAULT_PID_GAINS_LINEAR_VELOCITY = [300, 0, 0]  # P, I, D
+DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [60, 0, 5]  # P, I, D
 # P & D for linear position, P for heading
-DEFAULT_PID_GAINS_POSITION_CONTROL = [120, 350, 130]
+DEFAULT_PID_GAINS_POSITION_CONTROL = [140, 320, 130]
+
+# DEFAULT_PID_GAINS_POSTURE = [1400, 0, 3]  # P, I, D
+# DEFAULT_PID_GAINS_LINEAR_VELOCITY = [300, 0, 0]  # P, I, D
+# DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [60, 0, 5]  # P, I, D
+# # P & D for linear position, P for heading
+# DEFAULT_PID_GAINS_POSITION_CONTROL = [120, 370, 130]
+
 
 new_PID_gains_posture = [0] * 3  # P, I, D
 new_PID_gains_linear_velocity = [0] * 3  # P, I, D
@@ -327,7 +334,7 @@ if __name__ == '__main__':
     time.sleep(1)
     rospy.init_node('set_param')
     pub_new_gains = rospy.Publisher(
-        'new_PID_gains', PID_gains, queue_size=1)
+        'new_PID_gains', PID_gains, queue_size=1, latch=True)
 
     rospy.Subscriber('current_PID_gains', PID_gains,
                      callback_get_current_gains, queue_size=1)
