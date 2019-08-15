@@ -94,7 +94,6 @@ def motion_generator():
     # it's velocity at 1st priority (enable override on autonomous drive command)
     # first of all, check the flag for remote control
     if g_velocity_command_flag == True:
-        print(g_velocity_command_flag)
         if g_velocity_command_joy[0] != 0:
             # calculate target tilt angle of the robot based on it's velocity
             target_angle = g_initial_target_angle + \
