@@ -47,14 +47,24 @@ g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
 g_gains_for_position_control = [0] * 3
 
 g_last_time = 0  # timestamp to calculate acceleration of the robot
-g_last_time_calib = 0  # timestamp for calibration
-# if True, execute calibration of the initial target angle
-g_calibrate_initial_target_angle_flag = False
 
 
 # fixed parameters
 # default target tilt angle of the robot
 g_initial_target_angle = 40
+
+# global parameters for calibrating initial target angle
+# timestamp for calibration
+g_start_time_calib = 0.0
+g_passed_time_calib = 0.0
+
+# if True, execute calibration of the initial target angle
+g_start_calibration_flag = False
+# whether it is a first loop of calibration process
+g_first_loop_of_calibration = True
+# parameters for Max and min of ocsilation of location during hovering
+g_maximum_locatin_during_hover = 0.0
+g_minimum_location_during_hover = 0.0
 
 # gain for velocity command from joystick
 JOY_GAIN_LINEAR = 0.5
@@ -181,7 +191,7 @@ def callback_update_odometry(wheel_odometry):
 def callback_update_joycommand(joy_msg):
     global g_velocity_command_joy, g_velocity_command_flag
     global JOY_GAIN_LINEAR, JOY_GAIN_ANGULAR
-    global g_calibrate_initial_target_angle_flag
+    global g_start_calibration_flag
 
     # get trigger for velocity command
     g_velocity_command_flag = joy_msg.buttons[4]
@@ -192,13 +202,47 @@ def callback_update_joycommand(joy_msg):
         JOY_GAIN_ANGULAR  # left stick L/R
 
     # get tregger for calibrating initial target angle
-    g_calibrate_initial_target_angle_flag = joy_msg.buttons[5]
-    if g_calibrate_initial_target_angle_flag == True:
+    g_start_calibration_flag = joy_msg.buttons[5]
+    # if the flag is true, start calibration process
+    if g_start_calibration_flag == True:
         calibrate_initial_target_angle()
 
 
 def calibrate_initial_target_angle():
-    pass
+    global g_start_time_calib
+    global g_start_calibration_flag, g_first_loop_of_calibration
+    global g_maximum_locatin_during_hover, g_minimum_location_during_hover
+    global g_current_robot_location, g_initial_target_angle
+
+    # if it is a first loop of calibration process, update parameters for calibration
+    if g_first_loop_of_calibration == True:
+        g_start_time_calib = time.time()
+        g_maximum_locatin_during_hover = g_current_robot_location[0]
+        g_minimum_location_during_hover = g_current_robot_location[0]
+        g_first_loop_of_calibration = False
+
+    # update Max and min of the oscillation of the location during hovering
+    if g_current_robot_location[0] > g_maximum_locatin_during_hover:
+        g_maximum_locatin_during_hover = g_current_robot_location[0]
+    if g_current_robot_location[0] < g_minimum_location_during_hover:
+        g_minimum_location_during_hover = g_current_robot_location[0]
+
+    # if 2 seconds have passed since the process started, calibrate target angle
+    if time.time() - g_start_time_calib > 2:
+        mean_location_during_hovering = (
+            g_maximum_locatin_during_hover + g_minimum_location_during_hover) / 2
+
+        # update initial target angle
+        g_initial_target_angle = g_initial_target_angle + \
+            mean_location_during_hovering * CALIBRATION_GAIN
+
+        # reset every flags and parameters after calibration
+        g_start_calibration_flag = False
+        g_first_loop_of_calibration = True
+
+        # inform calibration has ended
+        rospy.loginfo("calibration completed! target_angle : " +
+                      str(g_initial_target_angle / 1000) + " [rad]")
 
 
 # function to inform current PID gains
@@ -210,7 +254,6 @@ def calibrate_initial_target_angle():
 #             g_gains_for_position_control[i])
 #     pub_current_gains.publish(current_PID_gains)
 #     del current_PID_gains
-
 
 if __name__ == '__main__':
     # initialize node as "mcu_interface"
