@@ -128,17 +128,17 @@ def get_MCU_data():
 
         imu_pub.publish(imu_data)  # publish as sensor_msgs/Imu
 
-        if data_from_MCU[15] > 11.1:  # 3.7V per cell @3s LiPo
-            rospy.loginfo("battery voltage : " +
-                          str(data_from_MCU[15]) + " [V]")
-        elif data_from_MCU[15] > 10.8:  # 3.6V per cell @3s LiPo
-            rospy.logwarn("battery voltage : " +
-                          str(data_from_MCU[15]) + " [V]")
-        elif data_from_MCU[15] > 10.2:  # 3.4V per cell @3s LiPo
+        # warnings for battery voltage (assume defaul battery is 3 cell LiPo battery)
+        # voltage under a certain value should be exception since it means battery are not connected.
+        if data_from_MCU[15] < 10.2 and data_from_MCU[15] > 2.0:  # 3.4V per cell @3s LiPo
             rospy.logfatal("battery voltage : " +
                            str(data_from_MCU[15]) + " [V]")
-
-        # print(data_from_MCU[16])
+        elif data_from_MCU[15] < 10.8:  # 3.6V per cell @3s LiPo
+            rospy.logwarn("battery voltage : " +
+                          str(data_from_MCU[15]) + " [V]")
+        elif data_from_MCU[15] < 11.1:  # 3.7V per cell @3s LiPo
+            rospy.loginfo("battery voltage : " +
+                          str(data_from_MCU[15]) + " [V]")
 
 
 # callback function to update PID gains those are subscribed
