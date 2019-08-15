@@ -198,6 +198,10 @@ def callback_update_joycommand(joy_msg):
         calibrate_initial_target_angle()
 
 
+def calibrate_initial_target_angle():
+    pass
+
+
 # function to inform current PID gains
 # def publish_current_gains():
 #     global g_gains_for_position_control
