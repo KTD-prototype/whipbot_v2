@@ -66,7 +66,7 @@ g_first_loop_of_calibration = True
 g_maximum_locatin_during_hover = 0.0
 g_minimum_location_during_hover = 0.0
 # gain to calibrate target angle
-CALIBRATION_GAIN = 20
+CALIBRATION_GAIN = 30
 
 # gain for velocity command from joystick
 JOY_GAIN_LINEAR = 0.5
@@ -235,8 +235,8 @@ def calibrate_initial_target_angle():
     if g_current_robot_location[0] < g_minimum_location_during_hover:
         g_minimum_location_during_hover = g_current_robot_location[0]
 
-    # if 4 seconds have passed since the process started, calibrate target angle
-    if time.time() - g_start_time_calib > 4:
+    # if 5 seconds have passed since the process started, calibrate target angle
+    if time.time() - g_start_time_calib > 5:
         mean_location_during_hovering = (
             g_maximum_locatin_during_hover + g_minimum_location_during_hover) / 2
 
@@ -250,7 +250,7 @@ def calibrate_initial_target_angle():
 
         # inform calibration has ended
         rospy.loginfo("calibration completed! target_angle : " +
-                      str(g_initial_target_angle / 1000) + " [rad]")
+                      str(g_initial_target_angle) + " [* 0.001 rad]")
 
 
 # function to inform current PID gains
