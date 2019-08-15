@@ -47,7 +47,7 @@ g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
 g_gains_for_position_control = [0] * 3
 
 g_last_time = 0  # timestamp to calculate acceleration of the robot
-g_last_time_2 = 0  # timestamp for calibration
+g_last_time_calib = 0  # timestamp for calibration
 # if True, execute calibration of the initial target angle
 g_calibrate_initial_target_angle_flag = False
 
@@ -101,6 +101,9 @@ def motion_generator():
                 (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
                 g_gains_for_linear_velocity[0] + \
                 robot_linear_accel * g_gains_for_linear_velocity[2]
+            # update target robot location to current robot location
+            g_target_robot_location[0] = g_current_robot_location[0]
+
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "target_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
@@ -108,6 +111,8 @@ def motion_generator():
             target_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
+            # update target robot heading to current robot heading
+            g_target_robot_location[2] = g_current_robot_location[2]
 
     # otherwise, control based on autonomous drive mode
     elif g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
@@ -189,6 +194,8 @@ def callback_update_joycommand(joy_msg):
 
     # get tregger for calibrating initial target angle
     g_calibrate_initial_target_angle_flag = joy_msg.buttons[5]
+    if g_calibrate_initial_target_angle_flag = True:
+        calibrate_initial_target_angle()
 
 
 # function to inform current PID gains
