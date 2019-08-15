@@ -82,6 +82,8 @@ def motion_generator():
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
+    print(g_target_robot_location[0])
+
     # calculate acceleration of the robot
     # calculate delta t from last loop
     current_time = time.time()
@@ -238,7 +240,7 @@ def calibrate_initial_target_angle():
     # if 5 seconds have passed since the process started, calibrate target angle
     if time.time() - g_start_time_calib > 5:
         mean_location_during_hovering = (
-            g_maximum_locatin_during_hover + g_minimum_location_during_hover) / 2
+            g_maximum_locatin_during_hover + g_minimum_location_during_hover) / 2 - g_target_robot_location[0]
 
         # update initial target angle
         g_initial_target_angle = g_initial_target_angle + \

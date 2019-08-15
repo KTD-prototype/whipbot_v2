@@ -44,7 +44,7 @@ def get_MCU_data():
     else:
         shifted_target_rotation = 32000 + g_target_rotation
 
-    print(g_target_angle, g_target_rotation)
+    # print(g_target_angle, g_target_rotation)
 
     command_head = 'H'
 
