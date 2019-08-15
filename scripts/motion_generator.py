@@ -199,14 +199,14 @@ def callback_update_joycommand(joy_msg):
 
 
 # function to inform current PID gains
-def publish_current_gains():
-    global g_gains_for_position_control
-    current_PID_gains = PID_gains()
-    for i in range(3):
-        current_PID_gains.pid_gains_for_posture.append(
-            g_gains_for_position_control[i])
-    pub_current_gains.publish(current_PID_gains)
-    del current_PID_gains
+# def publish_current_gains():
+#     global g_gains_for_position_control
+#     current_PID_gains = PID_gains()
+#     for i in range(3):
+#         current_PID_gains.pid_gains_for_posture.append(
+#             g_gains_for_position_control[i])
+#     pub_current_gains.publish(current_PID_gains)
+#     del current_PID_gains
 
 
 if __name__ == '__main__':
