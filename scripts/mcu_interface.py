@@ -26,11 +26,13 @@ ser = serial.Serial('/dev/ESP32', 115200)
 # global parameters for pid gains used in the MCU
 g_pid_gain_posture = [0] * 3  # 3 gain parameters : P, I and D
 g_target_angle = 0  # target of robot's tilt angle [*0.001 rad]
-g_target_rotation = 0  # target of robot's rotation
+g_pwm_offset_linear = 0  # target of robot's linear motion
+g_pwm_offset_rotation = 0  # target of robot's rotation
 
 
 def get_MCU_data():
-    global g_pid_gain_posture, g_target_angle, g_target_rotation
+    global g_pid_gain_posture, g_target_angle
+    global g_pwm_offset_linear, g_pwm_offset_rotation
 
     # shift range of the targets to positive number to send as char
     # shift target angle
@@ -38,20 +40,27 @@ def get_MCU_data():
         shifted_target_angle = g_target_angle
     else:
         shifted_target_angle = 32000 + g_target_angle
-    # shift target_rotation
-    if g_target_rotation >= 0:
-        shifted_target_rotation = g_target_rotation
+    # shift pwm_offset_lienar
+    if g_pwm_offset_linear >= 0:
+        shifted_pwm_offset_linear = g_pwm_offset_linear
     else:
-        shifted_target_rotation = 32000 + g_target_rotation
+        shifted_pwm_offset_linear = 32000 + g_pwm_offset_linear
+    # shift pwm_offset_rotation
+    if g_pwm_offset_rotation >= 0:
+        shifted_pwm_offset_rotation = g_pwm_offset_rotation
+    else:
+        shifted_pwm_offset_rotation = 32000 + g_pwm_offset_rotation
 
-    # print(g_target_angle, g_target_rotation)
+    # print(g_target_angle, g_pwm_offset_rotation)
 
     command_head = 'H'
 
     target_angle_high = shifted_target_angle >> 8
     target_angle_low = shifted_target_angle & 0x00ff
-    target_rotation_high = shifted_target_rotation >> 8
-    target_rotation_low = shifted_target_rotation & 0x00ff
+    pwm_offset_linear_high = shifted_pwm_offset_linear >> 8
+    pwm_offset_linear_low = shifted_pwm_offset_linear & 0x00ff
+    pwm_offset_rotation_high = shifted_pwm_offset_rotation >> 8
+    pwm_offset_rotation_low = shifted_pwm_offset_rotation & 0x00ff
 
     P_gain_posture_high = g_pid_gain_posture[0] >> 8
     P_gain_posture_low = g_pid_gain_posture[0] & 0x00ff
@@ -62,8 +71,9 @@ def get_MCU_data():
 
     send_command = []
     send_command += [command_head, chr(target_angle_high), chr(
-        target_angle_low), chr(target_rotation_high), chr(
-        target_rotation_low), chr(P_gain_posture_high), chr(
+        target_angle_low), chr(pwm_offset_linear_high), chr(
+        pwm_offset_linear_low), chr(pwm_offset_rotation_high), chr(
+        pwm_offset_rotation_low), chr(P_gain_posture_high), chr(
         P_gain_posture_low), chr(I_gain_posture_high), chr(
         I_gain_posture_low), chr(D_gain_posture_high), chr(
         D_gain_posture_low)]
@@ -154,10 +164,16 @@ def callback_update_target_angle(target_angle_message):
     g_target_angle = target_angle_message.data
 
 
+# function to update pwm offset for linear motion
+def callback_update_pwm_offset_linear(pwm_offset_linear_message):
+    global g_pwm_offset_linear
+    g_pwm_offset_linear = pwm_offset_linear_message.data
+
+
 # function to update target rotation
-def callback_update_target_rotation(target_rotation_message):
-    global g_target_rotation
-    g_target_rotation = target_rotation_message.data
+def callback_update_pwm_offset_rotation(pwm_offset_rotation_message):
+    global g_pwm_offset_rotation
+    g_pwm_offset_rotation = pwm_offset_rotation_message.data
 
 
 if __name__ == '__main__':
@@ -184,8 +200,10 @@ if __name__ == '__main__':
     # subscriber to get target angle and target rotation of the robot
     rospy.Subscriber('target_angle', Int16,
                      callback_update_target_angle, queue_size=1)
-    rospy.Subscriber('target_rotation', Int16,
-                     callback_update_target_rotation, queue_size=1)
+    rospy.Subscriber('pwm_offset_linear', Int16,
+                     callback_update_pwm_offset_linear, queue_size=1)
+    rospy.Subscriber('pwm_offset_rotation', Int16,
+                     callback_update_pwm_offset_rotation, queue_size=1)
 
     # you should wait for a while until your arduino is ready
     time.sleep(5)

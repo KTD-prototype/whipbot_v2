@@ -95,17 +95,21 @@ def motion_generator():
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
     # ramp gain when the robot's motion are steep
-    Dgain_position_ctrl = g_gains_for_position_control[1] * ((
-        500 - abs(g_target_angle - g_initial_target_angle)) / 500)
-    if Dgain_position_ctrl < 0:
-        Dgain_position_ctrl = 0
+    # Dgain_position_ctrl = g_gains_for_position_control[1] * ((
+    #     500 - abs(g_target_angle - g_initial_target_angle)) / 500)
+    # if Dgain_position_ctrl < 0:
+    #     Dgain_position_ctrl = 0
+
     # by default, control the robot to maintain current location and heading
     # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
     g_target_angle = g_initial_target_angle + \
         (g_current_robot_location[0] - g_target_robot_location[0]) * \
         g_gains_for_position_control[0] + \
-        g_current_robot_velocity[0] * Dgain_position_ctrl
-    target_rotation = (
+        g_current_robot_velocity[0] * g_gains_for_position_control[1]
+    pwm_offset_linear = (g_target_robot_location[0] - g_current_robot_location[0]) * \
+        g_gains_for_position_control[0] - \
+        g_current_robot_velocity[0] * g_gains_for_position_control[1]
+    pwm_offset_rotation = (
         g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # if there're velocity command from joy, control robot's motion by -
@@ -123,13 +127,13 @@ def motion_generator():
             g_target_robot_location[0] = g_current_robot_location[0]
 
         # calculate rotation command for the robot based on it's velocity
-        # be careful it looks like velocity feedback control, but "target_rotation"
+        # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
             # turn the flag on that robot are remote controlled
             g_remote_control_angular_flag = True
             # calculate target rotation power of the robot
-            target_rotation = target_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+            pwm_offset_rotation = pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
             g_target_robot_location[2] = g_current_robot_location[2]
@@ -145,16 +149,22 @@ def motion_generator():
         g_target_angle = 1000
     elif g_target_angle < -1000:
         g_target_angle = -1000
-    # target_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
-    if target_rotation > 1000:
-        target_rotation = 1000
-    elif target_rotation < -1000:
-        target_rotation = -1000
+    # pwm_offset_linear from -1000 to 1000 [equal to pwm signal @12bit in MCU]
+    if pwm_offset_linear > 1000:
+        pwm_offset_linear = 1000
+    elif pwm_offset_linear < -1000:
+        pwm_offset_linear = -1000
+    # pwm_offset_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
+    if pwm_offset_rotation > 1000:
+        pwm_offset_rotation = 1000
+    elif pwm_offset_rotation < -1000:
+        pwm_offset_rotation = -1000
 
     # publish motion command as messages
     pub_target_angle.publish(g_target_angle)
-    pub_target_rotation.publish(target_rotation)
-    print(g_target_angle, Dgain_position_ctrl)
+    pub_pwm_offset_linear.publish(pwm_offset_linear)
+    pub_pwm_offset_rotation.publish(pwm_offset_rotation)
+    print(g_target_angle, pwm_offset_linear, pwm_offset_rotation)
 
 
 def callback_update_PID_gains(new_PID_gains):
@@ -281,8 +291,10 @@ if __name__ == '__main__':
     # publisher for robot's motion
     pub_target_angle = rospy.Publisher(
         'target_angle', Int16, queue_size=1, latch=True)
-    pub_target_rotation = rospy.Publisher(
-        'target_rotation', Int16, queue_size=1, latch=True)
+    pub_pwm_offset_linear = rospy.Publisher(
+        'pwm_offset_linear', Int16, queue_size=1, latch=True)
+    pub_pwm_offset_rotation = rospy.Publisher(
+        'pwm_offset_rotation', Int16, queue_size=1, latch=True)
 
     # publisher to inform current PID gains
     pub_current_gains = rospy.Publisher(
