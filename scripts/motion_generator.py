@@ -52,6 +52,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 # target tilt angle of the robot
 g_initial_target_angle = 50
 g_target_angle = 0
+g_last_target_angle = 0
 
 # global parameters for calibrating initial target angle
 # timestamp for calibration
@@ -79,7 +80,7 @@ def motion_generator():
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command_joy, g_velocity_command_flag
     global g_velocity_command_autonomous
-    global g_initial_target_angle, g_target_angle, g_last_time
+    global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
@@ -105,9 +106,6 @@ def motion_generator():
     g_target_angle = g_initial_target_angle + \
         (g_current_robot_location[0] - g_target_robot_location[0]) * \
         g_gains_for_position_control[0] + \
-        g_current_robot_velocity[0] * g_gains_for_position_control[1]
-    pwm_offset_linear = (g_target_robot_location[0] - g_current_robot_location[0]) * \
-        g_gains_for_position_control[0] - \
         g_current_robot_velocity[0] * g_gains_for_position_control[1]
     pwm_offset_rotation = (
         g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
@@ -143,17 +141,15 @@ def motion_generator():
         # autonomous maneuver mode are not implemented yet
         pass
 
+    # ramp target_angle
+    g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
+
     # restrict range of motion command
     # target angle from -1000 to 1000 [*0.001 rad]
     if g_target_angle > 1000:
         g_target_angle = 1000
     elif g_target_angle < -1000:
         g_target_angle = -1000
-    # pwm_offset_linear from -1000 to 1000 [equal to pwm signal @12bit in MCU]
-    if pwm_offset_linear > 1000:
-        pwm_offset_linear = 1000
-    elif pwm_offset_linear < -1000:
-        pwm_offset_linear = -1000
     # pwm_offset_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
     if pwm_offset_rotation > 1000:
         pwm_offset_rotation = 1000
@@ -162,9 +158,20 @@ def motion_generator():
 
     # publish motion command as messages
     pub_target_angle.publish(g_target_angle)
-    pub_pwm_offset_linear.publish(pwm_offset_linear)
     pub_pwm_offset_rotation.publish(pwm_offset_rotation)
-    print(g_target_angle, pwm_offset_linear, pwm_offset_rotation)
+    print(g_target_angle)
+    g_last_target_angle = g_target_angle
+
+
+def ramp_target_angle(target, last_target):
+    RAMP_FACTOR = 50
+    if target > last_target + RAMP_FACTOR:
+        target = last_target + RAMP_FACTOR
+        print("ramped")
+    elif target < last_target - RAMP_FACTOR:
+        target = last_target - RAMP_FACTOR
+        print("ramped")
+    return target
 
 
 def callback_update_PID_gains(new_PID_gains):
@@ -291,8 +298,6 @@ if __name__ == '__main__':
     # publisher for robot's motion
     pub_target_angle = rospy.Publisher(
         'target_angle', Int16, queue_size=1, latch=True)
-    pub_pwm_offset_linear = rospy.Publisher(
-        'pwm_offset_linear', Int16, queue_size=1, latch=True)
     pub_pwm_offset_rotation = rospy.Publisher(
         'pwm_offset_rotation', Int16, queue_size=1, latch=True)
 

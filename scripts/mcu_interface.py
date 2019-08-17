@@ -40,11 +40,6 @@ def get_MCU_data():
         shifted_target_angle = g_target_angle
     else:
         shifted_target_angle = 32000 + g_target_angle
-    # shift pwm_offset_lienar
-    if g_pwm_offset_linear >= 0:
-        shifted_pwm_offset_linear = g_pwm_offset_linear
-    else:
-        shifted_pwm_offset_linear = 32000 + g_pwm_offset_linear
     # shift pwm_offset_rotation
     if g_pwm_offset_rotation >= 0:
         shifted_pwm_offset_rotation = g_pwm_offset_rotation
@@ -57,8 +52,6 @@ def get_MCU_data():
 
     target_angle_high = shifted_target_angle >> 8
     target_angle_low = shifted_target_angle & 0x00ff
-    pwm_offset_linear_high = shifted_pwm_offset_linear >> 8
-    pwm_offset_linear_low = shifted_pwm_offset_linear & 0x00ff
     pwm_offset_rotation_high = shifted_pwm_offset_rotation >> 8
     pwm_offset_rotation_low = shifted_pwm_offset_rotation & 0x00ff
 
@@ -71,8 +64,7 @@ def get_MCU_data():
 
     send_command = []
     send_command += [command_head, chr(target_angle_high), chr(
-        target_angle_low), chr(pwm_offset_linear_high), chr(
-        pwm_offset_linear_low), chr(pwm_offset_rotation_high), chr(
+        target_angle_low), chr(pwm_offset_rotation_high), chr(
         pwm_offset_rotation_low), chr(P_gain_posture_high), chr(
         P_gain_posture_low), chr(I_gain_posture_high), chr(
         I_gain_posture_low), chr(D_gain_posture_high), chr(
@@ -164,12 +156,6 @@ def callback_update_target_angle(target_angle_message):
     g_target_angle = target_angle_message.data
 
 
-# function to update pwm offset for linear motion
-def callback_update_pwm_offset_linear(pwm_offset_linear_message):
-    global g_pwm_offset_linear
-    g_pwm_offset_linear = pwm_offset_linear_message.data
-
-
 # function to update target rotation
 def callback_update_pwm_offset_rotation(pwm_offset_rotation_message):
     global g_pwm_offset_rotation
@@ -200,8 +186,6 @@ if __name__ == '__main__':
     # subscriber to get target angle and target rotation of the robot
     rospy.Subscriber('target_angle', Int16,
                      callback_update_target_angle, queue_size=1)
-    rospy.Subscriber('pwm_offset_linear', Int16,
-                     callback_update_pwm_offset_linear, queue_size=1)
     rospy.Subscriber('pwm_offset_rotation', Int16,
                      callback_update_pwm_offset_rotation, queue_size=1)
 
