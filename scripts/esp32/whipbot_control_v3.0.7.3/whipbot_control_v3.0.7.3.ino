@@ -237,11 +237,11 @@ void loop() {
   pwm_output_R = pwm_limit(pwm_output_R);
 
   bool flag = true;
-  if (abs(pwm_output_L - last_pwm_output_L) > 1000) {
+  if (abs(pwm_output_L - last_pwm_output_L) > 2000) {
     pwm_output_L = last_pwm_output_L;
     flag = false;
   }
-  if (abs(pwm_output_R - last_pwm_output_R) > 1000) {
+  if (abs(pwm_output_R - last_pwm_output_R) > 2000) {
     pwm_output_R = last_pwm_output_R;
     flag = false;
   }

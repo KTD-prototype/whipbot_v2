@@ -95,18 +95,7 @@ def motion_generator():
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
-    # ramp gain when the robot's motion are steep
-    # Dgain_position_ctrl = g_gains_for_position_control[1] * ((
-    #     500 - abs(g_target_angle - g_initial_target_angle)) / 500)
-    # if Dgain_position_ctrl < 0:
-    #     Dgain_position_ctrl = 0
-
-    # by default, control the robot to maintain current location and heading
-    # calculate robot's desired angle and rotation based on the error of it's location, and it's heading
-    g_target_angle = g_initial_target_angle + \
-        (g_current_robot_location[0] - g_target_robot_location[0]) * \
-        g_gains_for_position_control[0] + \
-        g_current_robot_velocity[0] * g_gains_for_position_control[1]
+    # process for keep robot
     pwm_offset_rotation = (
         g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
 
@@ -118,11 +107,10 @@ def motion_generator():
             # turn the flag on that robot are remote controlled
             g_remote_control_linear_flag = True
             # calculate target tilt angle of the robot based on it's velocity
-            g_target_angle = g_target_angle + \
-                (-1) * (g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
-                g_gains_for_linear_velocity[0] + \
-                robot_linear_accel * g_gains_for_linear_velocity[2] * 0.1
-            g_target_robot_location[0] = g_current_robot_location[0]
+            g_target_robot_location[0] = g_target_robot_location[0] + (
+                g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
+                g_gains_for_linear_velocity[0] * 0.01 + robot_linear_accel * \
+                g_gains_for_linear_velocity[2] * 0.01
 
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
@@ -137,9 +125,15 @@ def motion_generator():
             g_target_robot_location[2] = g_current_robot_location[2]
 
     # otherwise, control based on autonomous drive mode
-    elif g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
+    if g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
         # autonomous maneuver mode are not implemented yet
         pass
+
+    # process to control robot's target angle based on target of robot location
+    g_target_angle = g_initial_target_angle + \
+        (g_current_robot_location[0] - g_target_robot_location[0]) * \
+        g_gains_for_position_control[0] + \
+        g_current_robot_velocity[0] * g_gains_for_position_control[1]
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
@@ -159,7 +153,9 @@ def motion_generator():
     # publish motion command as messages
     pub_target_angle.publish(g_target_angle)
     pub_pwm_offset_rotation.publish(pwm_offset_rotation)
-    print(g_target_angle)
+    # print(pwm_offset_rotation)
+    print(g_target_robot_location)
+    print("")
     g_last_target_angle = g_target_angle
 
 
@@ -167,10 +163,10 @@ def ramp_target_angle(target, last_target):
     RAMP_FACTOR = 50
     if target > last_target + RAMP_FACTOR:
         target = last_target + RAMP_FACTOR
-        print("ramped")
+        # print("ramped")
     elif target < last_target - RAMP_FACTOR:
         target = last_target - RAMP_FACTOR
-        print("ramped")
+        # print("ramped")
     return target
 
 
