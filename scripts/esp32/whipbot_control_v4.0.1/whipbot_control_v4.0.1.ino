@@ -220,8 +220,13 @@ void loop() {
     isrTime = lastIsrAt;
     portEXIT_CRITICAL(&timerMux);
 
+    //    refresh IMU data
     get_IMU_data(imu_data);
     complementary_filter(posture_angle, imu_data);
+
+    //    store last pwm output
+    last_pwm_output_L = pwm_output_L;
+    last_pwm_output_R = pwm_output_R;
 
     imu_flag = false;
   }
@@ -254,9 +259,9 @@ void loop() {
     digitalWrite(DISABLE_R, LOW);
   }
 
-  current_time = micros();
-  passed_time += current_time - last_time;
-  last_time = current_time;
+  //  current_time = micros();
+  //  passed_time += current_time - last_time;
+  //  last_time = current_time;
 
   if (COM_FLAG == true) {
     if (Serial.available() >= 3) {
@@ -278,10 +283,10 @@ void loop() {
         Serial.println(voltage);
 
         //        Serial.println(target_angle);
-        Serial.println(pwm_output_L);
-        Serial.println(pwm_output_R);
-        Serial.println(last_pwm_output_L);
-        Serial.println(last_pwm_output_R);
+        //        Serial.println(pwm_output_L);
+        //        Serial.println(pwm_output_R);
+        //        Serial.println(last_pwm_output_L);
+        //        Serial.println(last_pwm_output_R);
         //        Serial.println(ramp_flag);
         //        Serial.println(target_angular_velocity);
         //        Serial.println(Kp_posture);
@@ -315,14 +320,5 @@ void loop() {
       passed_time = 0;
     }
   }
-
-  // store pwm output
-  if (last_pwm_output_L != pwm_output_L) {
-    last_pwm_output_L = pwm_output_L;
-  }
-  if (last_pwm_output_R != pwm_output_R) {
-    last_pwm_output_R = pwm_output_R;
-  }
-  
   ramp_flag = false;
 }

@@ -35,7 +35,7 @@
 
 // parameters to get IMU information
 #define GRAVITATIONAL_ACCEL 9.798 //at TOKYO
-#define SAMPLING_RATE 100 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
+#define SAMPLING_RATE 200 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
 #define SAMPLES_FOR_INITIATION 200 // (not used) get mean value of 200 samples of gyro to cancel native bias
 // channel number for timer interruption
 #define INTERRUPTION_CHANNEL 0
@@ -83,6 +83,8 @@ float imu_data[10]; //accel XYZ, gyro XYZ, mag XYZ, temperature
 float posture_angle[3]; //roll, pitch, heading
 
 // parameters for porsture control of the robot
+volatile bool control_flag = false;
+bool ramp_flag = false;
 int Kp_posture = 0, Ki_posture = 0, Kd_posture = 0; //PID gains will modified through command from host PC
 float target_angle = 0.0;
 int target_rotation = 0;
@@ -91,9 +93,6 @@ float voltage = 0; // battery voltage
 int pwm_output_L = 0, pwm_output_R = 0, last_pwm_output_L = 0, last_pwm_output_R = 0;
 
 int current_time, passed_time, last_time;
-
-bool ramp_flag = false;
-
 
 
 // function that will be called when GPIO interruption was fired
@@ -129,6 +128,9 @@ void IRAM_ATTR onTimer() {
 
   //  turn on the flag to read IMU
   imu_flag = true;
+
+  //  turn on the flag to control robot
+  control_flag = true;
 
   isrCounter++;
   lastIsrAt = 0;
@@ -226,32 +228,41 @@ void loop() {
     imu_flag = false;
   }
 
-  //  calculation for PWM output
-  if (Ki_posture != 0) {
-    accumulated_angle_error += (posture_angle[1] - target_angle);
-  }
-  else {
-    accumulated_angle_error = 0;
-  }
-  pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * -1 * 0.005 * accumulated_angle_error;
+  if (control_flag == true) {
+    //  calculation for PWM output
+    if (Ki_posture != 0) {
+      accumulated_angle_error += (posture_angle[1] - target_angle);
+    }
+    else {
+      accumulated_angle_error = 0;
+    }
+    pwm_output_L = -1 * Kp_posture * (posture_angle[1] - target_angle) + Kd_posture * imu_data[3] + Ki_posture * -1 * 0.005 * accumulated_angle_error;
 
-  pwm_output_R = pwm_output_L;
-  pwm_output_L = pwm_output_L + target_rotation;
-  pwm_output_R = pwm_output_R - target_rotation;
+    pwm_output_R = pwm_output_L;
+    pwm_output_L = pwm_output_L + target_rotation;
+    pwm_output_R = pwm_output_R - target_rotation;
 
-  bool drive_flag = motor_drive_enable();
+    bool drive_flag = motor_drive_enable();
 
-  if (drive_flag == true) {
-    digitalWrite(DISABLE_L, HIGH);
-    digitalWrite(DISABLE_R, HIGH);
-    pwm_output_L = ramp_pwm(pwm_output_L, last_pwm_output_L);
-    pwm_output_R = ramp_pwm(pwm_output_R, last_pwm_output_R);
-    motor_drive_L(pwm_output_L);
-    motor_drive_R(pwm_output_R);
-  }
-  else {
-    digitalWrite(DISABLE_L, LOW);
-    digitalWrite(DISABLE_R, LOW);
+    if (drive_flag == true) {
+      digitalWrite(DISABLE_L, HIGH);
+      digitalWrite(DISABLE_R, HIGH);
+      pwm_output_L = ramp_pwm(pwm_output_L, last_pwm_output_L);
+      pwm_output_R = ramp_pwm(pwm_output_R, last_pwm_output_R);
+      motor_drive_L(pwm_output_L);
+      motor_drive_R(pwm_output_R);
+    }
+    else {
+      digitalWrite(DISABLE_L, LOW);
+      digitalWrite(DISABLE_R, LOW);
+    }
+
+    // store pwm output
+    last_pwm_output_L = pwm_output_L;
+    last_pwm_output_R = pwm_output_R;
+
+    ramp_flag = false;
+    control_flag = false;
   }
 
   current_time = micros();
@@ -315,14 +326,4 @@ void loop() {
       passed_time = 0;
     }
   }
-
-  // store pwm output
-  if (last_pwm_output_L != pwm_output_L) {
-    last_pwm_output_L = pwm_output_L;
-  }
-  if (last_pwm_output_R != pwm_output_R) {
-    last_pwm_output_R = pwm_output_R;
-  }
-  
-  ramp_flag = false;
 }

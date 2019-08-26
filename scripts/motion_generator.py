@@ -50,7 +50,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 
 
 # target tilt angle of the robot
-g_initial_target_angle = 50
+g_initial_target_angle = 45
 g_target_angle = 0
 g_last_target_angle = 0
 
@@ -150,6 +150,7 @@ def motion_generator():
     pub_target_angle.publish(g_target_angle)
     pub_pwm_offset_rotation.publish(pwm_offset_rotation)
     # print(pwm_offset_rotation)
+    print(g_target_robot_location)
     # print(g_target_angle, pwm_offset_rotation)
     # print("")
     g_last_target_angle = g_target_angle
