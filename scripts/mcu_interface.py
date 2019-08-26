@@ -83,7 +83,7 @@ def get_MCU_data():
 
     # basically, the number of data is 16 ,0 to 15 : encoder-L/R, roll, pitch, heading[rad],
     # accelX,Y,Z[m/s2], gyroX,Y,Z[rad/s], magX,Y,Z[uT], temperature[degC], battery_voltage[v]
-    NUMBER_OF_DATA = 17
+    NUMBER_OF_DATA = 20
     data_from_MCU = [0.0] * NUMBER_OF_DATA
     reset_flag = False
     for i in range(NUMBER_OF_DATA):
@@ -142,6 +142,15 @@ def get_MCU_data():
             elif data_from_MCU[15] < 11.1:  # 3.7V per cell @3s LiPo
                 rospy.loginfo("battery voltage : " +
                               str(data_from_MCU[15]) + " [V]")
+
+        # check data from mcu
+        pwm_L = data_from_MCU[16]
+        pwm_R = data_from_MCU[17]
+        last_pwm_L = data_from_MCU[18]
+        last_pwm_R = data_from_MCU[19]
+        print(pwm_L, pwm_R)
+        print(last_pwm_L, last_pwm_R)
+        print("")
 
 
 # callback function to update PID gains those are subscribed

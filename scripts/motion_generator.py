@@ -104,8 +104,6 @@ def motion_generator():
     # first of all, check the flag for remote control
     if g_velocity_command_flag == True:
         if g_velocity_command_joy[0] != 0:
-            # turn the flag on that robot are remote controlled
-            g_remote_control_linear_flag = True
             # calculate target tilt angle of the robot based on it's velocity
             g_target_robot_location[0] = g_target_robot_location[0] + (
                 g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
@@ -116,8 +114,6 @@ def motion_generator():
         # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
-            # turn the flag on that robot are remote controlled
-            g_remote_control_angular_flag = True
             # calculate target rotation power of the robot
             pwm_offset_rotation = pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
@@ -154,19 +150,19 @@ def motion_generator():
     pub_target_angle.publish(g_target_angle)
     pub_pwm_offset_rotation.publish(pwm_offset_rotation)
     # print(pwm_offset_rotation)
-    print(g_target_robot_location)
-    print("")
+    # print(g_target_angle, pwm_offset_rotation)
+    # print("")
     g_last_target_angle = g_target_angle
 
 
 def ramp_target_angle(target, last_target):
-    RAMP_FACTOR = 50
+    RAMP_FACTOR = 80
     if target > last_target + RAMP_FACTOR:
         target = last_target + RAMP_FACTOR
-        # print("ramped")
+        print("ramped")
     elif target < last_target - RAMP_FACTOR:
         target = last_target - RAMP_FACTOR
-        # print("ramped")
+        print("ramped")
     return target
 
 

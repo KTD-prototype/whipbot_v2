@@ -31,6 +31,29 @@ int pwm_limit(int pwm_output) {
 }
 
 
+int ramp_pwm(int pwm_output, int last_pwm_output) {
+  int ramp_factor = 500;
+
+  if (pwm_output > last_pwm_output + ramp_factor) {
+    pwm_output = last_pwm_output + ramp_factor;
+    ramp_flag = true;
+  }
+  else if (pwm_output < last_pwm_output - ramp_factor) {
+    pwm_output = last_pwm_output - ramp_factor;
+    ramp_flag = true;
+  }
+
+  if (pwm_output > 4095) {
+    pwm_output = 4095;
+  }
+  else if (pwm_output < -4095) {
+    pwm_output = -4095;
+  }
+
+  return pwm_output;
+}
+
+
 void motor_drive_L(int pwm_L) {
   if (pwm_L >= 0) {
     ledcWrite(CHANNEL_L, pwm_L);
