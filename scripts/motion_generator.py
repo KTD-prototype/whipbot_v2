@@ -85,6 +85,7 @@ def motion_generator():
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
     # flag if there are commands
+    linear_command_flag = False
     angular_command_flag = False
 
     # calculate acceleration of the robot
@@ -105,14 +106,19 @@ def motion_generator():
         g_current_robot_velocity[0] * g_gains_for_position_control[1]
 
     # process to stabilize robot's heading (can be overrided by joystick)
-    pwm_offset_rotation = (
-        g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
+    # if heading value are oscillating between -pi and pi, then do nothing
+    if g_current_robot_location[2] * g_target_robot_location[2] < -4.0:
+        pwm_offset_rotation = 0
+    else:
+        pwm_offset_rotation = (g_current_robot_location[2] -
+                               g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
     # first of all, check the flag for remote control
     if g_velocity_command_flag == True:
         if g_velocity_command_joy[0] != 0:
+            linear_command_flag = True
             # calculate target tilt angle of the robot based on it's velocity
             g_target_robot_location[0] = g_target_robot_location[0] + g_velocity_command_joy[0] * \
                 g_gains_for_linear_velocity[0] * 0.001 + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
@@ -132,6 +138,15 @@ def motion_generator():
     if g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
         # autonomous maneuver mode are not implemented yet
         pass
+
+    # if velocity command has stoped, refresh target location by current location
+    if linear_command_flag == True and g_velocity_command_joy[0] == 0:
+        g_target_robot_location[0] = g_current_robot_location[0]
+        g_target_robot_location[1] = g_current_robot_location[1]
+        linear_command_flag = False
+    if angular_command_flag == True and g_velocity_command_joy[1] == 0:
+        g_target_robot_location[2] = g_current_robot_location[2]
+        angular_command_flag = False
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
