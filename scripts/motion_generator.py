@@ -98,6 +98,16 @@ def motion_generator():
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
+    # process to control robot's target angle based on target of robot location
+    g_target_angle = g_initial_target_angle + \
+        (g_current_robot_location[0] - g_target_robot_location[0]) * \
+        g_gains_for_position_control[0] + \
+        g_current_robot_velocity[0] * g_gains_for_position_control[1]
+
+    # process to stabilize robot's heading (can be overrided by joystick)
+    pwm_offset_rotation = (
+        g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
+
     # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
     # first of all, check the flag for remote control
@@ -122,17 +132,6 @@ def motion_generator():
     if g_velocity_command_autonomous[0] != 0 or g_velocity_command_autonomous[1] != 0:
         # autonomous maneuver mode are not implemented yet
         pass
-
-    # process to control robot's target angle based on target of robot location
-    g_target_angle = g_initial_target_angle + \
-        (g_current_robot_location[0] - g_target_robot_location[0]) * \
-        g_gains_for_position_control[0] + \
-        g_current_robot_velocity[0] * g_gains_for_position_control[1]
-
-    # process for keep robot's heading (only works there is no command)
-    if angular_command_flag == False:
-        pwm_offset_rotation = (
-            g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)

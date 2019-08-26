@@ -83,7 +83,7 @@ float imu_data[10]; //accel XYZ, gyro XYZ, mag XYZ, temperature
 float posture_angle[3]; //roll, pitch, heading
 
 // parameters for porsture control of the robot
-int Kp_posture = 0, Ki_posture = 0, Kd_posture = 0; //PID gains will modified through command from host PC
+int Kp_posture = 1500, Ki_posture = 0, Kd_posture = 40; //PID gains will modified through command from host PC
 float target_angle = 0.0;
 int target_rotation = 0;
 float accumulated_angle_error = 0;
@@ -262,12 +262,12 @@ void loop() {
     digitalWrite(DISABLE_R, LOW);
   }
 
-  //  current_time = micros();
-  //  passed_time += current_time - last_time;
-  //  last_time = current_time;
+  current_time = micros();
+  passed_time += current_time - last_time;
+  last_time = current_time;
 
   if (COM_FLAG == true) {
-    if (Serial.available() >= 3) {
+    if (Serial.available() >= 11) {
       if (Serial.read() == 'H') {
         target_angle = 0.001 * (float(receive_target()));
         target_rotation = receive_target();
@@ -320,6 +320,16 @@ void loop() {
       //      Serial.print("  ");
       //      Serial.println(last_pwm_output_R);
       //      Serial.println();
+
+      Serial.println(encoder_count_L);
+      Serial.println(encoder_count_R);
+      for (int i = 0; i < 3; i++) {
+        Serial.println(posture_angle[i]);
+      }
+      for (int j = 0; j < 10; j++) {
+        Serial.println(imu_data[j]);
+      }
+      Serial.println(voltage);
       passed_time = 0;
     }
   }
