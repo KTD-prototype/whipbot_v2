@@ -104,10 +104,8 @@ def motion_generator():
     if g_velocity_command_flag == True:
         if g_velocity_command_joy[0] != 0:
             # calculate target tilt angle of the robot based on it's velocity
-            g_target_robot_location[0] = g_target_robot_location[0] + (
-                g_velocity_command_joy[0] - g_current_robot_velocity[0]) * \
-                g_gains_for_linear_velocity[0] * 0.01 + robot_linear_accel * \
-                g_gains_for_linear_velocity[2] * 0.01
+            g_target_robot_location[0] = g_target_robot_location[0] + g_velocity_command_joy[0] * \
+                g_gains_for_linear_velocity[0] * 0.01 + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.01
 
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
