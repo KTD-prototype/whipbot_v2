@@ -84,6 +84,9 @@ def motion_generator():
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
+    # flag if there are commands
+    angular_command_flag = False
+
     # calculate acceleration of the robot
     # calculate delta t from last loop
     current_time = time.time()
@@ -94,10 +97,6 @@ def motion_generator():
         g_current_robot_velocity[0] - g_last_robot_velocity[0]) / delta_t
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
-
-    # process for keep robot
-    pwm_offset_rotation = (
-        g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
@@ -114,6 +113,7 @@ def motion_generator():
         # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
+            angular_command_flag = True
             # calculate target rotation power of the robot
             pwm_offset_rotation = pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
@@ -130,6 +130,11 @@ def motion_generator():
         (g_current_robot_location[0] - g_target_robot_location[0]) * \
         g_gains_for_position_control[0] + \
         g_current_robot_velocity[0] * g_gains_for_position_control[1]
+
+    # process for keep robot's heading (only works there is no command)
+    if angular_command_flag == False:
+        pwm_offset_rotation = (
+            g_current_robot_location[2] - g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)

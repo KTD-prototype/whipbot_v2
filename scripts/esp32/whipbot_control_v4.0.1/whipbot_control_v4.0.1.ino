@@ -224,7 +224,10 @@ void loop() {
     get_IMU_data(imu_data);
     complementary_filter(posture_angle, imu_data);
 
-    //    store last pwm output
+    //    store last pwm output only when IMU data was refreshed-
+    //    since pwm output will re-calculated far frequently than IMU data,
+    //    leading to replace pwm output with same value, and last value of those.
+    //    It will cause pwm = last_pwm and then ramp_pwm() function will ineffective.
     last_pwm_output_L = pwm_output_L;
     last_pwm_output_R = pwm_output_R;
 
