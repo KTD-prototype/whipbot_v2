@@ -25,10 +25,10 @@ current_PID_gains_positon_control = [0] * 3
 
 
 DEFAULT_PID_GAINS_POSTURE = [1500, 0, 40]  # P, I, D
-DEFAULT_PID_GAINS_LINEAR_VELOCITY = [300, 0, 100]  # P, I, D
+DEFAULT_PID_GAINS_LINEAR_VELOCITY = [400, 0, 400]  # P, I, D
 DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [120, 0, 10]  # P, I, D
 # P & D for linear position, P for heading
-DEFAULT_PID_GAINS_POSITION_CONTROL = [170, 430, 130]
+DEFAULT_PID_GAINS_POSITION_CONTROL = [150, 410, 130]
 
 
 new_PID_gains_posture = [0] * 3  # P, I, D
@@ -219,7 +219,7 @@ class Test(Frame):
                                          command=self.set_Igain_for_linear_velocity)
         # self.slider_Igain_linVel.set(current_PID_gains_linear_velocity[1])
 
-        self.slider_Dgain_linVel = Scale(self, from_=0, to=100,
+        self.slider_Dgain_linVel = Scale(self, from_=0, to=500,
                                          # value=50,
                                          orient=HORIZONTAL,
                                          length="8i",
