@@ -150,7 +150,7 @@ def motion_generator():
         g_target_robot_location[2] = g_current_robot_location[2]
         print("stopped teleop")
         g_angular_command_flag = False
-    print(linear_command_flag)
+    print(g_linear_command_flag)
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
