@@ -75,7 +75,7 @@ g_minimum_location_during_hover = 0.0
 CALIBRATION_GAIN = 30
 
 # gain for velocity command from joystick
-JOY_GAIN_LINEAR = 0.1
+JOY_GAIN_LINEAR = 0.2
 JOY_GAIN_ANGULAR = 1
 
 
