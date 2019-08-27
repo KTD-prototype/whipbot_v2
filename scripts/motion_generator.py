@@ -108,7 +108,7 @@ def motion_generator():
         if g_velocity_command_joy[0] != 0:
             g_linear_command_flag = True
             # calculate target tilt angle of the robot based on it's velocity
-            g_target_angle = g_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
+            g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
                 g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
 
         # calculate rotation command for the robot based on it's velocity
@@ -117,7 +117,7 @@ def motion_generator():
         if g_velocity_command_joy[1] != 0:
             g_angular_command_flag = True
             # calculate target rotation power of the robot
-            g_pwm_offset_rotation = g_pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+            g_pwm_offset_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
             g_target_robot_location[2] = g_current_robot_location[2]
@@ -128,13 +128,14 @@ def motion_generator():
         pass
 
     # if velocity command has stoped, refresh target location by current location
+    # linear
     if g_linear_command_flag == True and g_velocity_command_joy[0] == 0:
         g_target_robot_location = g_current_robot_location
-        # rospy.loginfo("stopped teleop")
+        g_target_robot_location = list(g_target_robot_location)
         g_linear_command_flag = False
     if g_angular_command_flag == True and g_velocity_command_joy[1] == 0:
         g_target_robot_location = g_current_robot_location
-        # rospy.loginfo("stopped teleop")
+        g_target_robot_location = list(g_target_robot_location)
         g_angular_command_flag = False
 
     # process to maintain robot's location (work only when there is no velocity command)
