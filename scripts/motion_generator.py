@@ -57,6 +57,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 g_initial_target_angle = 45
 g_target_angle = 0
 g_last_target_angle = 0
+g_pwm_offset_rotation = 0
 
 # global parameters for calibrating initial target angle
 # timestamp for calibration
@@ -85,7 +86,7 @@ def motion_generator():
     global g_velocity_command_joy, g_velocity_command_flag
     global g_linear_command_flag, g_angular_command_flag
     global g_velocity_command_autonomous
-    global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time
+    global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time, g_pwm_offset_rotation
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
 
@@ -108,15 +109,15 @@ def motion_generator():
             g_linear_command_flag = True
             # calculate target tilt angle of the robot based on it's velocity
             g_target_angle = g_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
-                g_gains_for_linear_velocity[0] * 0.001 + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
+                g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
 
         # calculate rotation command for the robot based on it's velocity
-        # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
+        # be careful it looks like velocity feedback control, but "g_pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
             g_angular_command_flag = True
             # calculate target rotation power of the robot
-            pwm_offset_rotation = pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
+            g_pwm_offset_rotation = g_pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
             g_target_robot_location[2] = g_current_robot_location[2]
@@ -128,13 +129,12 @@ def motion_generator():
 
     # if velocity command has stoped, refresh target location by current location
     if g_linear_command_flag == True and g_velocity_command_joy[0] == 0:
-        g_target_robot_location[0] = g_current_robot_location[0]
-        g_target_robot_location[1] = g_current_robot_location[1]
-        rospy.loginfo("stopped teleop")
+        g_target_robot_location = g_current_robot_location
+        # rospy.loginfo("stopped teleop")
         g_linear_command_flag = False
     if g_angular_command_flag == True and g_velocity_command_joy[1] == 0:
-        g_target_robot_location[2] = g_current_robot_location[2]
-        rospy.loginfo("stopped teleop")
+        g_target_robot_location = g_current_robot_location
+        # rospy.loginfo("stopped teleop")
         g_angular_command_flag = False
 
     # process to maintain robot's location (work only when there is no velocity command)
@@ -148,11 +148,11 @@ def motion_generator():
     if g_angular_command_flag == False:
         # if robot's heading are oscillating between -pi and pi, do nothing
         if g_current_robot_location[2] * g_target_robot_location[2] < -4.0:
-            pwm_offset_rotation = 0
+            g_pwm_offset_rotation = 0
         # if not, control robot's heading to maintain it
         else:
-            pwm_offset_rotation = (g_current_robot_location[2] -
-                                   g_target_robot_location[2]) * g_gains_for_position_control[2]
+            g_pwm_offset_rotation = (g_current_robot_location[2] -
+                                     g_target_robot_location[2]) * g_gains_for_position_control[2]
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
@@ -163,20 +163,20 @@ def motion_generator():
         g_target_angle = 1000
     elif g_target_angle < -1000:
         g_target_angle = -1000
-    # pwm_offset_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
-    if pwm_offset_rotation > 1000:
-        pwm_offset_rotation = 1000
-    elif pwm_offset_rotation < -1000:
-        pwm_offset_rotation = -1000
+    # g_pwm_offset_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
+    if g_pwm_offset_rotation > 1000:
+        g_pwm_offset_rotation = 1000
+    elif g_pwm_offset_rotation < -1000:
+        g_pwm_offset_rotation = -1000
 
     # publish motion command as messages
     pub_target_angle.publish(g_target_angle)
-    pub_pwm_offset_rotation.publish(pwm_offset_rotation)
-    # print(pwm_offset_rotation)
+    pub_pwm_offset_rotation.publish(g_pwm_offset_rotation)
+    # print(g_pwm_offset_rotation)
     # print(g_target_robot_location)
     # print(g_current_robot_location)
     # print(robot_linear_accel)
-    print(g_target_angle, pwm_offset_rotation)
+    print(g_target_angle, g_pwm_offset_rotation)
     # print("")
     g_last_target_angle = g_target_angle
 
