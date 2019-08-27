@@ -37,6 +37,10 @@ g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 # command from joystick
 g_velocity_command_joy = [0.0] * 2  # [linear, angular]
 g_velocity_command_flag = False  # if False, disable remote control
+
+g_linear_command_flag = False  # flag if there are linear velocity commands
+g_angular_command_flag = False  # flag if there are angular velocity commands
+
 # command from autonomous driving node
 g_velocity_command_autonomous = [0.0] * 2
 
@@ -79,14 +83,11 @@ def motion_generator():
     global g_current_robot_location, g_current_robot_velocity
     global g_target_robot_location, g_target_robot_velocity
     global g_velocity_command_joy, g_velocity_command_flag
+    global g_linear_command_flag, g_angular_command_flag
     global g_velocity_command_autonomous
     global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time
     global g_gains_for_position_control
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity
-
-    # flag if there are commands
-    linear_command_flag = False
-    angular_command_flag = False
 
     # calculate acceleration of the robot
     # calculate delta t from last loop
@@ -118,7 +119,7 @@ def motion_generator():
     # first of all, check the flag for remote control
     if g_velocity_command_flag == True:
         if g_velocity_command_joy[0] != 0:
-            linear_command_flag = True
+            g_linear_command_flag = True
             # calculate target tilt angle of the robot based on it's velocity
             g_target_robot_location[0] = g_target_robot_location[0] + g_velocity_command_joy[0] * \
                 g_gains_for_linear_velocity[0] * 0.001 + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
@@ -127,7 +128,7 @@ def motion_generator():
         # be careful it looks like velocity feedback control, but "pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:
-            angular_command_flag = True
+            g_angular_command_flag = True
             # calculate target rotation power of the robot
             pwm_offset_rotation = pwm_offset_rotation + (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
@@ -140,15 +141,15 @@ def motion_generator():
         pass
 
     # if velocity command has stoped, refresh target location by current location
-    if linear_command_flag == True and g_velocity_command_joy[0] == 0:
+    if g_linear_command_flag == True and g_velocity_command_joy[0] == 0:
         g_target_robot_location[0] = g_current_robot_location[0]
         g_target_robot_location[1] = g_current_robot_location[1]
         print("stopped teleop")
-        linear_command_flag = False
-    if angular_command_flag == True and g_velocity_command_joy[1] == 0:
+        g_linear_command_flag = False
+    if g_angular_command_flag == True and g_velocity_command_joy[1] == 0:
         g_target_robot_location[2] = g_current_robot_location[2]
         print("stopped teleop")
-        angular_command_flag = False
+        g_angular_command_flag = False
     print(linear_command_flag)
 
     # ramp target_angle
