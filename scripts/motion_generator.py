@@ -143,9 +143,11 @@ def motion_generator():
     if linear_command_flag == True and g_velocity_command_joy[0] == 0:
         g_target_robot_location[0] = g_current_robot_location[0]
         g_target_robot_location[1] = g_current_robot_location[1]
+        rospy.loginfo("stopped teleop")
         linear_command_flag = False
     if angular_command_flag == True and g_velocity_command_joy[1] == 0:
         g_target_robot_location[2] = g_current_robot_location[2]
+        rospy.loginfo("stopped teleop")
         angular_command_flag = False
 
     # ramp target_angle
