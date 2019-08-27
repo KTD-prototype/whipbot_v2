@@ -100,20 +100,6 @@ def motion_generator():
     robot_angular_accel = (
         g_current_robot_velocity[1] - g_last_robot_velocity[1]) / delta_t
 
-    # process to control robot's target angle based on target of robot location
-    g_target_angle = g_initial_target_angle + \
-        (g_current_robot_location[0] - g_target_robot_location[0]) * \
-        g_gains_for_position_control[0] + \
-        g_current_robot_velocity[0] * g_gains_for_position_control[1]
-
-    # process to stabilize robot's heading (can be overrided by joystick)
-    # if heading value are oscillating between -pi and pi, then do nothing
-    if g_current_robot_location[2] * g_target_robot_location[2] < -4.0:
-        pwm_offset_rotation = 0
-    else:
-        pwm_offset_rotation = (g_current_robot_location[2] -
-                               g_target_robot_location[2]) * g_gains_for_position_control[2]
-
     # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
     # first of all, check the flag for remote control
@@ -121,7 +107,7 @@ def motion_generator():
         if g_velocity_command_joy[0] != 0:
             g_linear_command_flag = True
             # calculate target tilt angle of the robot based on it's velocity
-            g_target_robot_location[0] = g_target_robot_location[0] + g_velocity_command_joy[0] * \
+            g_target_angle = g_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
                 g_gains_for_linear_velocity[0] * 0.001 + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
 
         # calculate rotation command for the robot based on it's velocity
@@ -151,6 +137,23 @@ def motion_generator():
         rospy.loginfo("stopped teleop")
         g_angular_command_flag = False
 
+    # process to maintain robot's location (work only when there is no velocity command)
+    # linear
+    if g_linear_command_flag == False:
+        g_target_angle = g_initial_target_angle + \
+            (g_current_robot_location[0] - g_target_robot_location[0]) * \
+            g_gains_for_position_control[0] / math.cos(g_current_robot_location[2]) + \
+            g_current_robot_velocity[0] * g_gains_for_position_control[1]
+    # angular
+    if g_angular_command_flag == False:
+        # if robot's heading are oscillating between -pi and pi, do nothing
+        if g_current_robot_location[2] * g_target_robot_location[2] < -4.0:
+            pwm_offset_rotation = 0
+        # if not, control robot's heading to maintain it
+        else:
+            pwm_offset_rotation = (g_current_robot_location[2] -
+                                   g_target_robot_location[2]) * g_gains_for_position_control[2]
+
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
@@ -170,9 +173,10 @@ def motion_generator():
     pub_target_angle.publish(g_target_angle)
     pub_pwm_offset_rotation.publish(pwm_offset_rotation)
     # print(pwm_offset_rotation)
-    print(g_target_robot_location)
+    # print(g_target_robot_location)
+    # print(g_current_robot_location)
     # print(robot_linear_accel)
-    # print(g_target_angle, pwm_offset_rotation)
+    print(g_target_angle, pwm_offset_rotation)
     # print("")
     g_last_target_angle = g_target_angle
 
