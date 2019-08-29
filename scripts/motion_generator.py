@@ -155,15 +155,14 @@ def motion_generator():
     # linear
     if g_linear_command_flag == False:
         # sum up the accumulated error of robot's location for integral control only when it's gain is not zero
-        if g_gains_for_position_control[1] != 0:
-            g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
-                (g_current_robot_location[0] - g_target_robot_location[0])
+        # if g_gains_for_position_control[1] != 0:
+        #     g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
+        #         (g_current_robot_location[0] - g_target_robot_location[0])
         # PID control of robot's target angle based on it's position related errors
         g_target_angle = g_initial_target_angle + \
             (g_current_robot_location[0] - g_target_robot_location[0]) * \
             g_gains_for_position_control[0] / math.cos(g_current_robot_location[2]) + \
-            g_current_robot_velocity[0] * g_gains_for_position_control[2] + \
-            g_accumulated_error_robot_location[0] * g_gains_for_position_control[1]
+            g_current_robot_velocity[0] * g_gains_for_position_control[2]
     # angular
     if g_angular_command_flag == False:
         # if robot's heading are oscillating between -pi and pi, do nothing
