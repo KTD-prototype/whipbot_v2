@@ -33,6 +33,10 @@ g_last_robot_velocity = [0.0] * 2  # [linear, angular]
 g_target_robot_location = [0.0] * 3  # [x,y,theta]
 g_target_robot_velocity = [0.0] * 2  # [linear, angular]
 
+# accumulated error for integral control
+g_accumulated_error_robot_location = [0.0] * 3
+g_accumulated_error_linear_velocity = [0.0] * 3
+
 # velocity command sent from other nodes
 # command from joystick
 g_velocity_command_joy = [0.0] * 2  # [linear, angular]
@@ -47,8 +51,8 @@ g_velocity_command_autonomous = [0.0] * 2
 # gains sent from GUI
 g_gains_for_linear_velocity = [0] * 3  # P,I,D gain
 g_gains_for_angular_velocity = [0] * 3  # P,I,D gain
-# P & D gain for linear position, P gain for heading
-g_gains_for_position_control = [0] * 3
+# P,I & D gain for linear position, P gain for heading
+g_gains_for_position_control = [0] * 4
 
 g_last_time = 0  # timestamp to calculate acceleration of the robot
 
@@ -87,8 +91,8 @@ def motion_generator():
     global g_linear_command_flag, g_angular_command_flag
     global g_velocity_command_autonomous
     global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time, g_pwm_offset_rotation
-    global g_gains_for_position_control
-    global g_gains_for_linear_velocity, g_gains_for_angular_velocity
+    global g_gains_for_position_control, g_accumulated_error_robot_location
+    global g_gains_for_linear_velocity, g_gains_for_angular_velocity, g_accumulated_error_linear_velocity
 
     # calculate acceleration of the robot
     # calculate delta t from last loop
@@ -103,23 +107,32 @@ def motion_generator():
 
     # if there're velocity command from joy, control robot's motion by -
     # it's velocity at 1st priority (enable override on autonomous drive command)
-    # first of all, check the flag for remote control
+    # first of all, check the flag for remote control (if a certain bottun of joypad is pressed, the flag would be true)
     if g_velocity_command_flag == True:
+        # if there is linear velocity command
         if g_velocity_command_joy[0] != 0:
+            # turn on the flag that indicates there is a linear velocity command
             g_linear_command_flag = True
+            # sum up the accumulated error of robot's velocity for integral control only when it's gain is not zero
+            if g_gains_for_linear_velocity[1] != 0:
+                g_accumulated_error_linear_velocity[0] = g_accumulated_error_linear_velocity[0] + \
+                    (g_current_robot_velocity[0] - g_velocity_command_joy[0])
             # calculate target tilt angle of the robot based on it's velocity
             g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
-                g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * 0.001
+                g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
+                0.001 + g_accumulated_error_linear_velocity[0] * g_gains_for_linear_velocity[1]
 
         # calculate rotation command for the robot based on it's velocity
         # be careful it looks like velocity feedback control, but "g_pwm_offset_rotation"
         # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
-        if g_velocity_command_joy[1] != 0:
+        if g_velocity_command_joy[1] != 0:  # if there is linear velocity command
+            # turn on the flag that indicates there is a angular velocity command
             g_angular_command_flag = True
             # calculate target rotation power of the robot
             g_pwm_offset_rotation = (g_velocity_command_joy[1] - g_current_robot_velocity[1]) * \
                 (-1) * g_gains_for_angular_velocity[0] - \
                 robot_angular_accel * g_gains_for_angular_velocity[2]
+            # update robot's target location (heading)
             g_target_robot_location[2] = g_current_robot_location[2]
 
     # otherwise, control based on autonomous drive mode
@@ -141,10 +154,16 @@ def motion_generator():
     # process to maintain robot's location (work only when there is no velocity command)
     # linear
     if g_linear_command_flag == False:
+        # sum up the accumulated error of robot's location for integral control only when it's gain is not zero
+        if g_gains_for_position_control[1] != 0:
+            g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
+                (g_current_robot_location[0] - g_target_robot_location[0])
+        # PID control of robot's target angle based on it's position related errors
         g_target_angle = g_initial_target_angle + \
             (g_current_robot_location[0] - g_target_robot_location[0]) * \
             g_gains_for_position_control[0] / math.cos(g_current_robot_location[2]) + \
-            g_current_robot_velocity[0] * g_gains_for_position_control[1]
+            g_current_robot_velocity[0] * g_gains_for_position_control[2] + \
+            g_accumulated_error_robot_location[0] * g_gains_for_position_control[1]
     # angular
     if g_angular_command_flag == False:
         # if robot's heading are oscillating between -pi and pi, do nothing
@@ -153,7 +172,7 @@ def motion_generator():
         # if not, control robot's heading to maintain it
         else:
             g_pwm_offset_rotation = (g_current_robot_location[2] -
-                                     g_target_robot_location[2]) * g_gains_for_position_control[2]
+                                     g_target_robot_location[2]) * g_gains_for_position_control[3]
 
     # ramp target_angle
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)

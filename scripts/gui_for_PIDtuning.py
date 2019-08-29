@@ -27,15 +27,15 @@ current_PID_gains_positon_control = [0] * 3
 DEFAULT_PID_GAINS_POSTURE = [1500, 0, 40]  # P, I, D
 DEFAULT_PID_GAINS_LINEAR_VELOCITY = [400, 0, 150]  # P, I, D
 DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [120, 0, 10]  # P, I, D
-# P & D for linear position, P for heading
-DEFAULT_PID_GAINS_POSITION_CONTROL = [150, 410, 130]
+# P,I & D for linear position, P for heading
+DEFAULT_PID_GAINS_POSITION_CONTROL = [150, 0, 410, 130]
 
 
 new_PID_gains_posture = [0] * 3  # P, I, D
 new_PID_gains_linear_velocity = [0] * 3  # P, I, D
 new_PID_gains_angular_velocity = [0] * 3  # P, I, D
-# P & D for linear position, P for heading
-new_PID_gains_position_control = [0] * 3
+# P,I & D for linear position, P for heading
+new_PID_gains_position_control = [0] * 4
 
 
 class Test(Frame):
@@ -48,6 +48,7 @@ class Test(Frame):
                 new_PID_gains_linear_velocity[i])
             new_PID_gains.pid_gains_for_angular_velocity.append(
                 new_PID_gains_angular_velocity[i])
+        for i in range(4):
             new_PID_gains.pid_gains_for_position_control.append(
                 new_PID_gains_position_control[i])
         pub_new_gains.publish(new_PID_gains)
@@ -142,7 +143,7 @@ class Test(Frame):
         new_PID_gains = PID_gains()
         self.publish_new_gains()
 
-    def set_Dgain_for_linear_position(self, val):
+    def set_Igain_for_linear_position(self, val):
         global new_PID_gains_position_control
         # print "slider now at", val
         val = int(val)
@@ -151,12 +152,21 @@ class Test(Frame):
         new_PID_gains = PID_gains()
         self.publish_new_gains()
 
-    def set_Pgain_for_heading(self, val):
+    def set_Dgain_for_linear_position(self, val):
         global new_PID_gains_position_control
         # print "slider now at", val
         val = int(val)
         new_PID_gains_position_control = list(new_PID_gains_position_control)
         new_PID_gains_position_control[2] = val
+        new_PID_gains = PID_gains()
+        self.publish_new_gains()
+
+    def set_Pgain_for_heading(self, val):
+        global new_PID_gains_position_control
+        # print "slider now at", val
+        val = int(val)
+        new_PID_gains_position_control = list(new_PID_gains_position_control)
+        new_PID_gains_position_control[3] = val
         new_PID_gains = PID_gains()
         self.publish_new_gains()
 
@@ -172,8 +182,9 @@ class Test(Frame):
         self.slider_Igain_angVel.set(DEFAULT_PID_GAINS_ANGULAR_VELOCITY[1])
         self.slider_Dgain_angVel.set(DEFAULT_PID_GAINS_ANGULAR_VELOCITY[2])
         self.slider_Pgain_position.set(DEFAULT_PID_GAINS_POSITION_CONTROL[0])
-        self.slider_Dgain_position.set(DEFAULT_PID_GAINS_POSITION_CONTROL[1])
-        self.slider_Pgain_heading.set(DEFAULT_PID_GAINS_POSITION_CONTROL[2])
+        self.slider_Igain_position.set(DEFAULT_PID_GAINS_POSITION_CONTROL[1])
+        self.slider_Dgain_position.set(DEFAULT_PID_GAINS_POSITION_CONTROL[2])
+        self.slider_Pgain_heading.set(DEFAULT_PID_GAINS_POSITION_CONTROL[3])
 
     def createWidgets(self):
         # scale for posture control gains
@@ -261,6 +272,15 @@ class Test(Frame):
                                            command=self.set_Pgain_for_linear_position)
         # self.slider_Pgain_position.set(current_PID_gains_positon_control[0])
 
+        # scale for position control gains
+        self.slider_Igain_position = Scale(self, from_=0, to=1000,
+                                           # value=50,
+                                           orient=HORIZONTAL,
+                                           length="8i",
+                                           label="I gain for position control",
+                                           command=self.set_Igain_for_linear_position)
+        # self.slider_Pgain_position.set(current_PID_gains_positon_control[0])
+
         self.slider_Dgain_position = Scale(self, from_=0, to=1000,
                                            # value=50,
                                            orient=HORIZONTAL,
@@ -293,6 +313,7 @@ class Test(Frame):
         self.slider_Igain_angVel.pack()
         self.slider_Dgain_angVel.pack()
         self.slider_Pgain_position.pack()
+        self.slider_Igain_position.pack()
         self.slider_Dgain_position.pack()
         self.slider_Pgain_heading.pack()
         self.reset.pack(side=LEFT)
