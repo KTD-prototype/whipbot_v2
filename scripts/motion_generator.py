@@ -117,6 +117,8 @@ def motion_generator():
             if g_gains_for_linear_velocity[1] != 0:
                 g_accumulated_error_linear_velocity[0] = g_accumulated_error_linear_velocity[0] + \
                     (g_current_robot_velocity[0] - g_velocity_command_joy[0])
+            else:  # reset accumulated error
+                g_accumulated_error_linear_velocity[0] = 0
             # calculate target tilt angle of the robot based on it's velocity
             g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
                 g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
@@ -143,6 +145,7 @@ def motion_generator():
     # if velocity command has stoped, refresh target location by current location
     # linear
     if g_linear_command_flag == True and g_velocity_command_joy[0] == 0:
+        g_accumulated_error_linear_velocity[0] = 0
         g_target_robot_location = g_current_robot_location
         g_target_robot_location = list(g_target_robot_location)
         g_linear_command_flag = False
@@ -155,14 +158,17 @@ def motion_generator():
     # linear
     if g_linear_command_flag == False:
         # sum up the accumulated error of robot's location for integral control only when it's gain is not zero
-        # if g_gains_for_position_control[1] != 0:
-        #     g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
-        #         (g_current_robot_location[0] - g_target_robot_location[0])
+        if g_gains_for_position_control[1] != 0:
+            g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
+                (g_current_robot_location[0] - g_target_robot_location[0])
+        else:  # reset the accumulated error to zero
+            g_accumulated_error_robot_location[0] = 0
         # PID control of robot's target angle based on it's position related errors
         g_target_angle = g_initial_target_angle + \
             (g_current_robot_location[0] - g_target_robot_location[0]) * \
             g_gains_for_position_control[0] / math.cos(g_current_robot_location[2]) + \
-            g_current_robot_velocity[0] * g_gains_for_position_control[2]
+            g_current_robot_velocity[0] * g_gains_for_position_control[2] + \
+            g_accumulated_error_robot_location[0] * g_gains_for_position_control[1]
     # angular
     if g_angular_command_flag == False:
         # if robot's heading are oscillating between -pi and pi, do nothing
