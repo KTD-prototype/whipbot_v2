@@ -82,6 +82,11 @@ CALIBRATION_GAIN = 30
 JOY_GAIN_LINEAR = 0.2
 JOY_GAIN_ANGULAR = 1
 
+# flag to start hovering test
+g_hovering_test_flag = False
+g_hovering_location_range = [0.0] * 4  # x_MAX, x_min, y_MAX, y_min
+g_hovering_count = 0
+
 
 def motion_generator():
     # declare global parameters
@@ -93,6 +98,7 @@ def motion_generator():
     global g_initial_target_angle, g_target_angle, g_last_target_angle, g_last_time, g_pwm_offset_rotation
     global g_gains_for_position_control, g_accumulated_error_robot_location
     global g_gains_for_linear_velocity, g_gains_for_angular_velocity, g_accumulated_error_linear_velocity
+    global g_hovering_test_flag
 
     # calculate acceleration of the robot
     # calculate delta t from last loop
@@ -120,24 +126,11 @@ def motion_generator():
             # calculate target tilt angle of the robot based on it's velocity
             g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
                 g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
-                0.001 + g_accumulated_error_linear_velocity[0] * g_gains_for_linear_velocity[1]
-
-        else:
-            # sum up the accumulated error of robot's velocity for integral control only when it's gain is not zero
-            if g_gains_for_linear_velocity[1] != 0:
-                g_accumulated_error_linear_velocity[0] = g_accumulated_error_linear_velocity[0] + \
-                    (g_current_robot_velocity[0] - g_velocity_command_joy[0])
-            else:  # reset accumulated error
-                g_accumulated_error_linear_velocity[0] = 0
-            # calculate target tilt angle of the robot based on it's velocity
-            g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
-                g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
                 0.01 + g_accumulated_error_linear_velocity[0] * g_gains_for_linear_velocity[1]
-            rospy.loginfo("velocity control")
 
-        # calculate rotation command for the robot based on it's velocity
-        # be careful it looks like velocity feedback control, but "g_pwm_offset_rotation"
-        # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
+            # calculate rotation command for the robot based on it's velocity
+            # be careful it looks like velocity feedback control, but "g_pwm_offset_rotation"
+            # doesn't mean angular velocity. It means bias for motor command between L/R to change robot's heading
         if g_velocity_command_joy[1] != 0:  # if there is linear velocity command
             # turn on the flag that indicates there is a angular velocity command
             g_angular_command_flag = True
@@ -167,19 +160,27 @@ def motion_generator():
 
     # process to maintain robot's location (work only when there is no velocity command)
     # linear
-    # if g_linear_command_flag == False:
-    #     # sum up the accumulated error of robot's location for integral control only when it's gain is not zero
-    #     if g_gains_for_position_control[1] != 0:
-    #         g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
-    #             (g_current_robot_location[0] - g_target_robot_location[0])
-    #     else:  # reset the accumulated error to zero
-    #         g_accumulated_error_robot_location[0] = 0
-    #     # PID control of robot's target angle based on it's position related errors
-    #     g_target_angle = g_initial_target_angle + \
-    #         (g_current_robot_location[0] - g_target_robot_location[0]) * \
-    #         g_gains_for_position_control[0] / math.cos(g_current_robot_location[2]) + \
-    #         g_current_robot_velocity[0] * g_gains_for_position_control[2] + \
-    #         g_accumulated_error_robot_location[0] * g_gains_for_position_control[1]
+    if g_linear_command_flag == False:
+        # sum up the accumulated error of robot's velocity for integral control only when it's gain is not zero
+        if g_gains_for_linear_velocity[1] != 0:
+            g_accumulated_error_linear_velocity[0] = g_accumulated_error_linear_velocity[0] + \
+                (g_current_robot_velocity[0] - g_velocity_command_joy[0])
+        else:  # reset accumulated error
+            g_accumulated_error_linear_velocity[0] = 0
+
+        # sum up the accumulated error of robot's location for integral control only when it's gain is not zero
+        if g_gains_for_position_control[1] != 0:
+            g_accumulated_error_robot_location[0] = g_accumulated_error_robot_location[0] + \
+                (g_current_robot_location[0] - g_target_robot_location[0])
+        else:  # reset the accumulated error to zero
+            g_accumulated_error_robot_location[0] = 0
+
+        # calculate target tilt angle of the robot based on it's velocity and accumulated error of location
+        g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
+            g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
+            0.01 + g_accumulated_error_linear_velocity[0] * g_gains_for_linear_velocity[1] + \
+            g_accumulated_error_robot_location[0] * g_gains_for_position_control[1]
+
     # angular
     if g_angular_command_flag == False:
         # if robot's heading are oscillating between -pi and pi, do nothing
@@ -216,9 +217,44 @@ def motion_generator():
     # print("")
     g_last_target_angle = g_target_angle
 
+    if g_hovering_test_flag == True:
+        hovering_test()
+
+
+def hovering_test():
+    global g_hovering_location_range, g_hovering_count, g_hovering_test_flag
+    global g_current_robot_location
+
+    current_location = [0.0] * 4  # temporal storage of current robot location
+    current_location[0] = g_current_robot_location[0]  # parameter for x_MAX
+    current_location[1] = g_current_robot_location[0]  # parameter for x_min
+    current_location[2] = g_current_robot_location[1]  # parameter for y_MAX
+    current_location[3] = g_current_robot_location[1]  # parameter for y_min
+
+    if g_hovering_count == 0:
+        rospy.logwarn("hovering test start")
+        g_hovering_location_range = current_location
+        g_hovering_location_range = list(g_hovering_location_range)
+
+    g_hovering_count = g_hovering_count + 1
+    for i in range(4):
+        if i % 2 == 0:
+            if g_hovering_location_range[i] < current_location[i]:
+                g_hovering_location_range[i] = current_location[i]
+        else:
+            if g_hovering_location_range[i] > current_location[i]:
+                g_hovering_location_range[i] = current_location[i]
+
+    if g_hovering_count == 100:
+        hovering_range = math.sqrt((g_hovering_location_range[0] - g_hovering_location_range[1])**2 + (
+            g_hovering_location_range[2] - g_hovering_location_range[3])**2)
+        rospy.logwarn("hovering range is " + str(hovering_range))
+        g_hovering_count = 0
+        g_hovering_test_flag = False
+
 
 def ramp_target_angle(target, last_target):
-    RAMP_FACTOR = 80
+    RAMP_FACTOR = 60
     if target > last_target + RAMP_FACTOR:
         target = last_target + RAMP_FACTOR
         print("ramped")
