@@ -274,6 +274,7 @@ void loop() {
     // disable motor driver module
     digitalWrite(DISABLE_L, LOW);
     digitalWrite(DISABLE_R, LOW);
+    accumulated_angle_error = 0;
   }
 
   passed_time_com += micros() - last_time;

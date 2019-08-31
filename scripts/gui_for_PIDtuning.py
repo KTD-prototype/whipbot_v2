@@ -24,8 +24,8 @@ current_PID_gains_angular_velocity = [0] * 3  # P, I, D
 current_PID_gains_positon_control = [0] * 3
 
 
-DEFAULT_PID_GAINS_POSTURE = [1600, 0, 45]  # P, I, D
-DEFAULT_PID_GAINS_LINEAR_VELOCITY = [400, 2, 175]  # P, I, D
+DEFAULT_PID_GAINS_POSTURE = [1500, 0, 40]  # P, I, D
+DEFAULT_PID_GAINS_LINEAR_VELOCITY = [350, 2, 175]  # P, I, D
 DEFAULT_PID_GAINS_ANGULAR_VELOCITY = [130, 0, 15]  # P, I, D
 # P,I & D for linear position, P for heading
 DEFAULT_PID_GAINS_POSITION_CONTROL = [140, 1, 400, 130]
