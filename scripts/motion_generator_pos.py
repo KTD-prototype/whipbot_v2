@@ -79,7 +79,7 @@ g_minimum_location_during_hover = 0.0
 CALIBRATION_GAIN = 30
 
 # gain for velocity command from joystick
-JOY_GAIN_LINEAR = 0.2
+JOY_GAIN_LINEAR = 0.5
 JOY_GAIN_ANGULAR = 1
 
 # flag to start hovering test
@@ -187,7 +187,7 @@ def motion_generator():
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
     # restrict range of motion command
-    TARGET_ANGLE_RANGE = 1000
+    TARGET_ANGLE_RANGE = 500
     # target angle from -1*TARGET_ANGLE_RANGE to TARGET_ANGLE_RANGE [*0.001 rad]
     if g_target_angle > TARGET_ANGLE_RANGE:
         g_target_angle = TARGET_ANGLE_RANGE

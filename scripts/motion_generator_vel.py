@@ -195,11 +195,12 @@ def motion_generator():
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
     # restrict range of motion command
-    # target angle from -500 to 500 [*0.001 rad]
-    if g_target_angle > 500:
-        g_target_angle = 500
-    elif g_target_angle < -500:
-        g_target_angle = -500
+    TARGET_ANGLE_RANGE = 500
+    # target angle from -1*TARGET_ANGLE_RANGE to TARGET_ANGLE_RANGE [*0.001 rad]
+    if g_target_angle > TARGET_ANGLE_RANGE:
+        g_target_angle = TARGET_ANGLE_RANGE
+    elif g_target_angle < -1 * TARGET_ANGLE_RANGE:
+        g_target_angle = -1 * TARGET_ANGLE_RANGE
     # g_pwm_offset_rotation from -1000 to 1000 [equal to pwm signal @12bit in MCU]
     if g_pwm_offset_rotation > 1000:
         g_pwm_offset_rotation = 1000
