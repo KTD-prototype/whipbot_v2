@@ -123,6 +123,9 @@ def motion_generator():
                     (g_current_robot_velocity[0] - g_velocity_command_joy[0])
             else:  # reset accumulated error
                 g_accumulated_error_linear_velocity[0] = 0
+            # damp command when it is negative since the robot will move faster when going backward
+            if g_velocity_command_joy[0] < 0:
+                g_velocity_command_joy[0] = 0.5 * g_velocity_command_joy[0]
             # calculate target tilt angle of the robot based on it's velocity
             g_target_angle = g_initial_target_angle + (g_current_robot_velocity[0] - g_velocity_command_joy[0]) * \
                 g_gains_for_linear_velocity[0] + robot_linear_accel * g_gains_for_linear_velocity[2] * \
