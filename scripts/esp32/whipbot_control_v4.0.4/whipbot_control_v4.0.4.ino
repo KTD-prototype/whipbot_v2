@@ -38,7 +38,7 @@
 
 // parameters to get IMU information
 #define GRAVITATIONAL_ACCEL 9.798 //at TOKYO
-#define SAMPLING_RATE 100 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
+#define SAMPLING_RATE 200 //IMU referesh rate : 200 Hz (over 1000 Hz is available if you want only refreshing) 
 #define SAMPLES_FOR_INITIATION 200 // (not used) get mean value of 200 samples of gyro to cancel native bias
 // channel number for timer interruption
 #define INTERRUPTION_CHANNEL 0
@@ -92,6 +92,7 @@ int pwm_output_L = 0, pwm_output_R = 0, last_pwm_output_L = 0, last_pwm_output_R
 
 // paramters to check time that passed
 int passed_time_led, passed_time_com, last_time;
+int passed_time_imu, last_time_imu;
 
 
 
@@ -225,6 +226,12 @@ void loop() {
     last_pwm_output_R = pwm_output_R;
 
     imu_flag = false;
+
+    // check IMU refresh rate
+    //    int current_time_imu = micros();
+    //    passed_time_imu = current_time_imu - last_time_imu;
+    //    last_time_imu = current_time_imu;
+    //    Serial.println(passed_time_imu);
   }
 
 
@@ -325,7 +332,7 @@ void loop() {
       voltage_low_led = ! voltage_low_led;
       digitalWrite(LED_PIN, voltage_low_led);
       passed_time_led = 0;
-      Serial.println(battery_voltage);
+      //      Serial.println(battery_voltage);
     }
   }
   else {

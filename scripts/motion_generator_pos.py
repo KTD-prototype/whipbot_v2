@@ -193,7 +193,7 @@ def motion_generator():
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
     # restrict range of motion command
-    TARGET_ANGLE_RANGE = 500
+    TARGET_ANGLE_RANGE = 1000
     # target angle from -1*TARGET_ANGLE_RANGE to TARGET_ANGLE_RANGE [*0.001 rad]
     if g_target_angle > TARGET_ANGLE_RANGE:
         g_target_angle = TARGET_ANGLE_RANGE
@@ -209,10 +209,10 @@ def motion_generator():
     pub_target_angle.publish(g_target_angle)
     pub_pwm_offset_rotation.publish(g_pwm_offset_rotation)
     # print(g_pwm_offset_rotation)
-    # print(g_target_robot_location)
+    print(g_target_robot_location)
     # print(g_current_robot_location)
     # print(robot_linear_accel)
-    print(g_target_angle, g_pwm_offset_rotation)
+    # print(g_target_angle, g_pwm_offset_rotation)
     # print("")
     g_last_target_angle = g_target_angle
 
@@ -253,7 +253,7 @@ def hovering_test():
 
 
 def ramp_target_angle(target, last_target):
-    RAMP_FACTOR = 60
+    RAMP_FACTOR = 50
     if target > last_target + RAMP_FACTOR:
         target = last_target + RAMP_FACTOR
         print("ramped")
@@ -399,7 +399,7 @@ if __name__ == '__main__':
                      queue_size=1)
 
     # set the loop rate at 50Hz (higher is better, but it looks 60Hz is MAXIMUM for my environment)
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(20)
 
     while not rospy.is_shutdown():
         try:
