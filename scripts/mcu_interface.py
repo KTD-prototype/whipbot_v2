@@ -203,7 +203,7 @@ if __name__ == '__main__':
     time.sleep(5)
     print("started")
 
-    # set the loop rate at 50Hz (higher is better, but it looks 60Hz is MAXIMUM for my environment)
+    # set the loop rate at 20Hz
     rate = rospy.Rate(20)
 
     while not rospy.is_shutdown():
