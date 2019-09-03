@@ -78,10 +78,6 @@ g_minimum_location_during_hover = 0.0
 # gain to calibrate target angle
 CALIBRATION_GAIN = 30
 
-# gain for velocity command from joystick
-JOY_GAIN_LINEAR = 0.5
-JOY_GAIN_ANGULAR = 1
-
 # flag to start hovering test
 g_hovering_test_flag = False
 g_hovering_location_range = [0.0] * 4  # x_MAX, x_min, y_MAX, y_min
@@ -117,11 +113,6 @@ def motion_generator():
         if g_velocity_command_joy[0] != 0:  # if there is linear velocity command
             # turn on the flag that indicates there is a linear velocity command
             g_linear_command_flag = True
-            # damp command when it is negative since the robot will move faster when going backward
-            if g_velocity_command_joy[0] < 0:
-                velocity_command = 0.1 * g_velocity_command_joy[0]
-            else:
-                velocity_command = g_velocity_command_joy[0]
             # sum up the accumulated error of robot's velocity for integral control only when it's gain is not zero
             if g_gains_for_linear_velocity[1] != 0:
                 g_accumulated_error_linear_velocity[0] = g_accumulated_error_linear_velocity[0] + \
@@ -193,7 +184,7 @@ def motion_generator():
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
     # restrict range of motion command
-    TARGET_ANGLE_RANGE = 1000
+    TARGET_ANGLE_RANGE = 500
     # target angle from -1*TARGET_ANGLE_RANGE to TARGET_ANGLE_RANGE [*0.001 rad]
     if g_target_angle > TARGET_ANGLE_RANGE:
         g_target_angle = TARGET_ANGLE_RANGE
@@ -313,10 +304,17 @@ def callback_update_joycommand(joy_msg):
 
     # get trigger for velocity command
     g_velocity_command_flag = joy_msg.buttons[4]
-    # get command from left joy stick as velocity commands
-    g_velocity_command_joy[0] = joy_msg.axes[1] * \
-        JOY_GAIN_LINEAR  # [m/s] left stick F/R
 
+    # gain for velocity command from joystick
+    JOY_GAIN_LINEAR = 0.5
+    JOY_GAIN_ANGULAR = 1
+    # get command from left joy stick as velocity commands
+    if joy_msg.axes[1] >= 0:
+        g_velocity_command_joy[0] = joy_msg.axes[1] * \
+            JOY_GAIN_LINEAR  # [m/s] left stick F/R
+    else:
+        g_velocity_command_joy[0] = joy_msg.axes[1] * \
+            JOY_GAIN_LINEAR * 0.25  # [m/s] left stick F/R
     g_velocity_command_joy[1] = joy_msg.axes[0] * \
         JOY_GAIN_ANGULAR  # left stick L/R
 
