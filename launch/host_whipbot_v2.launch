@@ -1,0 +1,12 @@
+<launch>
+  <!-- <include file="$(find pimouse_ros)/launch/pimouse.launch"/> -->
+
+  <node name="GUI_for_tuning" pkg="whipbot_v2" type="gui_for_PIDtuning.py" output="screen"/>
+
+  <node pkg="mjpeg_server" name="mjpeg_server" type="mjpeg_server">
+    <param name="port" value="10000"/>
+  </node>
+
+  <node pkg="cv_test" name="face_to_face" type="face_to_face3.py" output="screen"/>
+
+</launch>
