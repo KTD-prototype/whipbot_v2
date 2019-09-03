@@ -58,7 +58,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 
 
 # target tilt angle of the robot
-g_initial_target_angle = 45
+g_initial_target_angle = 30
 g_target_angle = 0
 g_last_target_angle = 0
 g_pwm_offset_rotation = 0
