@@ -58,7 +58,7 @@ g_last_time = 0  # timestamp to calculate acceleration of the robot
 
 
 # target tilt angle of the robot
-g_initial_target_angle = 30
+g_initial_target_angle = -15
 g_target_angle = 0
 g_last_target_angle = 0
 g_pwm_offset_rotation = 0
@@ -184,7 +184,7 @@ def motion_generator():
     g_target_angle = ramp_target_angle(g_target_angle, g_last_target_angle)
 
     # restrict range of motion command
-    TARGET_ANGLE_RANGE = 500
+    TARGET_ANGLE_RANGE = 600
     # target angle from -1*TARGET_ANGLE_RANGE to TARGET_ANGLE_RANGE [*0.001 rad]
     if g_target_angle > TARGET_ANGLE_RANGE:
         g_target_angle = TARGET_ANGLE_RANGE
