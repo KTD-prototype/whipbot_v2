@@ -12,7 +12,7 @@ int receive_target() {
   byte low = Serial.read();
   int received_data = high * 256 + low;
 
-  if (received_data > 1000) {
+  if (received_data > 16000) {
     received_data = received_data - 32000;
   }
 
