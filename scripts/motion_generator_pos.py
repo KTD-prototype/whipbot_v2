@@ -309,12 +309,12 @@ def callback_update_joycommand(joy_msg):
     JOY_GAIN_LINEAR = 0.5
     JOY_GAIN_ANGULAR = 1
     # get command from left joy stick as velocity commands
-    if joy_msg.axes[1] >= 0:
+    if joy_msg.axes[1] >= 0: # moving forward
         g_velocity_command_joy[0] = joy_msg.axes[1] * \
             JOY_GAIN_LINEAR  # [m/s] left stick F/R
-    else:
+    else: # moving backward
         g_velocity_command_joy[0] = joy_msg.axes[1] * \
-            JOY_GAIN_LINEAR * 0.25  # [m/s] left stick F/R
+            JOY_GAIN_LINEAR * 0.6  # [m/s] left stick F/R
     g_velocity_command_joy[1] = joy_msg.axes[0] * \
         JOY_GAIN_ANGULAR  # left stick L/R
 
